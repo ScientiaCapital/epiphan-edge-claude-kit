@@ -33,15 +33,19 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit
     steps:
       - uses: actions/checkout@v4
       - name: First run
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit
         run: bash install.sh
       - name: Second run (safe to re-run)
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit
         run: bash install.sh
       - name: Kit and Claude Code are in place
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit
         run: |
           test -f "$EPIPHAN_KIT_DIR/.mcp.json"
           test -f "$EPIPHAN_KIT_DIR/.claude/commands/start.md"
@@ -56,18 +60,22 @@ jobs:
       matrix:
         shell: [pwsh, powershell]
     runs-on: windows-latest
-    env:
-      EPIPHAN_KIT_DIR: ${{ runner.temp }}\epiphan-edge-claude-kit-${{ matrix.shell }}
     defaults:
       run:
         shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v4
       - name: First run
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit-${{ matrix.shell }}
         run: Get-Content -Raw install.ps1 | Invoke-Expression
       - name: Second run (safe to re-run)
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit-${{ matrix.shell }}
         run: Get-Content -Raw install.ps1 | Invoke-Expression
       - name: Kit is in place
+        env:
+          EPIPHAN_KIT_DIR: ${{ runner.temp }}/epiphan-edge-claude-kit-${{ matrix.shell }}
         run: |
           if (-not (Test-Path "$env:EPIPHAN_KIT_DIR\.mcp.json")) { throw 'kit missing' }
           if (-not (Test-Path "$env:EPIPHAN_KIT_DIR\.claude\commands\start.md")) { throw 'start.md missing' }
