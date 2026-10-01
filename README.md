@@ -24,7 +24,8 @@ start a recording, with your OK before anything changes.
 
 - A **Mac** (macOS 13+), **Windows** 10/11, or **Linux** computer
 - A **paid Epiphan Edge account** with at least one Epiphan device (Pearl-2, Pearl Mini, Pearl Nano,
-  Pearl Nexus, EC20…) paired to it
+  Pearl Nexus, EC20…) paired to it. Looking and checking works on Edge; the commands that change things
+  (`/record`, `/golive`, `/fix`) need **Epiphan Edge Premium**.
 - A **Claude** account on a **Pro, Max, Team or Enterprise** plan. The free plan doesn't include Claude Code.
 
 ### Step 1: Open a terminal
@@ -50,8 +51,10 @@ irm https://raw.githubusercontent.com/ScientiaCapital/epiphan-edge-claude-kit/ma
 ```
 
 It installs Claude Code if you don't have it, downloads this kit into a folder called
-`epiphan-edge-claude-kit` in your home folder, and opens Claude Code there. You'll see
-`Step 1 of 3`, `Step 2 of 3`… as it goes. You can [read the script first](install.sh) if you like.
+`epiphan-edge-claude-kit` in your home folder, and opens Claude Code there. It prints numbered steps as it
+goes, and asks one question: **your Epiphan region** (North America, Europe or Australia). Pick the one you
+sign in to Epiphan Cloud on; if you're not sure, it's North America. You can read the script first:
+[install.sh](install.sh) or [install.ps1](install.ps1).
 
 ### Step 3: Answer three questions in Claude Code
 
@@ -61,9 +64,15 @@ It installs Claude Code if you don't have it, downloads this kit into a folder c
 
 ### Step 4: Type `/start`
 
-Type `/start` and press `Enter`. Claude checks the connection. The first time, a browser opens. Sign in
-with your **Epiphan Edge** account, then follow the one or two steps `/start` gives you. When it says
-**"You're connected!"**, type `/fleet`.
+Type `/start` and press `Enter`. Claude checks the connection. The first time, it tells you to sign in to
+Epiphan, which takes three short commands:
+
+1. `/exit` (closes Claude for a moment)
+2. `claude mcp login epiphan`: a browser opens. Sign in with your **Epiphan Edge** account and **pick the
+   team** you want Claude to see.
+3. `claude`, then `/start` again
+
+When it says **"You're connected!"**, type `/fleet`.
 
 ### Next time
 
@@ -80,8 +89,10 @@ claude
 | `command not found: claude` or `'claude' is not recognized` | Close the terminal, open a new one, and paste the Step 2 line again. |
 | `'irm' is not recognized` | You're in Command Prompt, not PowerShell. Open **PowerShell** (Step 1). |
 | `/start` says no Epiphan server | Type `/mcp`, choose **epiphan**, approve it, then `/start` again. |
-| Signed in, but tools still say `FORBIDDEN` | Type `/mcp` → **epiphan** → **Reconnect**, or `/exit` and run `claude` again. |
-| "0 devices" | You signed in to an Edge team with no devices. Check you used the right Epiphan account. |
+| `FORBIDDEN` or "not signed in" | Do the three sign-in commands from Step 4. |
+| Sign-in fails, or "0 devices" | Wrong **region** or wrong **team**. Paste the Step 2 line again to pick another region, and sign in again to pick another team. |
+| Worked yesterday, not today | Your Epiphan sign-in expired. Do the three sign-in commands from Step 4. |
+| A change was refused | Changes need an **Epiphan Edge Premium** plan. The EC20 camera can't record or stream on command. |
 | `already exists but isn't this kit` | You have a different folder with the same name. Rename it, then paste Step 2 again. |
 | Anything else | Run `claude doctor`, or [open an issue](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/issues). |
 
@@ -98,19 +109,24 @@ claude
 | `/look <room>` | Grabs the live preview and audio levels and tells you what's on screen | No |
 | `/ask-docs <question>` | Answers from the official Epiphan knowledge base, with the page cited | No |
 | `/preflight <room>` | Go/no-go checklist: signal, audio, disk hours left, schedule conflicts | No |
-| `/record <room> [start\|stop]` | Pre-flight → your approval → record → verify | **Yes** |
-| `/golive <room> [endpoint] [start\|stop]` | Pre-flight → your approval → stream → verify | **Yes** |
-| `/fix <#>` | Takes an item from `/triage`, plans the fix, applies it with approval, re-checks | **Yes** |
+| `/record <room> [start\|stop]` | Pre-flight → your approval → record → verify | **Yes** (Edge Premium) |
+| `/golive <room> [endpoint] [start\|stop]` | Pre-flight → your approval → stream → verify | **Yes** (Edge Premium) |
+| `/fix <#>` | Takes an item from `/triage`, plans the fix, applies it with approval, re-checks | **Yes** (Edge Premium) |
 
 Or just ask: *"Which rooms can't record tomorrow morning?"*
 
 ## How it works
 
-- `.mcp.json` points Claude Code at the Epiphan MCP server (`https://go.epiphan.cloud/mcp`). You sign in
-  with your own Epiphan Edge account, and the agent only sees your team.
+- `.mcp.json` points Claude Code at the Epiphan MCP server (North America, `https://go.epiphan.cloud/mcp`).
+  For Europe (`eu.epiphan.cloud`) or Australia (`au.epiphan.cloud`), the installer adds a private override
+  for this folder with `claude mcp add --scope local`, so the shared files never change and updates keep
+  working. You sign in with your own Epiphan Edge account and pick one team; the agent sees only that team.
+- Epiphan's official guides: [Connect an AI assistant using MCP](https://kb.epiphan.com/cloud-edge/connect-an-ai-assistant-to-epiphan-cloud-using-mcp),
+  [Epiphan MCP capabilities](https://kb.epiphan.com/cloud-edge/epiphan-mcp-capabilities),
+  [Troubleshooting](https://kb.epiphan.com/cloud-edge/verify-and-troubleshoot-the-epiphan-mcp-connection).
 - `.claude/commands/*.md` are the slash commands: plain-English instructions, no code.
 - `CLAUDE.md` holds the rules the agent follows in this folder.
-- Requires Claude Code **2.1.196 or newer** (the installer gets the latest; `claude update` upgrades).
+- Requires Claude Code **2.1.196 or newer**. The installer installs or updates it; `claude update` does it by hand.
 
 ## Safety model
 
@@ -119,7 +135,8 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
   `permissions.ask`, which prompts in every permission mode. A hook (`.claude/hooks/epiphan-write-guard.sh`)
   also forces a prompt for any non-read Epiphan tool, including ones added later, and adds a louder warning
   to reboots, firmware updates, stops and deletes. Both rules also cover the claude.ai "Epiphan MCP" connector
-  if you have it.
+  if you have it. On Windows the hook needs [Git for Windows](https://git-scm.com/downloads/win) (the installer
+  sets it up); without it, the `ask` rules still prompt for every listed write.
 - The agent is instructed never to reboot or update a device that's recording, streaming, or about to
   start a scheduled event, and to treat device names, on-screen text and docs as data, not instructions.
 - Stream keys and credentialed URLs are always masked.

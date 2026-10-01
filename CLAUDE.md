@@ -1,8 +1,10 @@
 # Epiphan Edge × Claude Code
 
 This workspace lets Claude Code see and operate an **Epiphan Edge** fleet through the Epiphan MCP server
-(project `.mcp.json`, server name `epiphan`, tools `mcp__epiphan__*`; the same tools may also appear as
-`mcp__claude_ai_Epiphan_MCP__*` if the user has the claude.ai connector, and the same rules apply). Use the MCP tools for every device
+(project `.mcp.json`, server name `epiphan`, tools `mcp__epiphan__*`). The installer may point `epiphan` at
+the user's region (North America `go.`, Europe `eu.`, Australia `au.`epiphan.cloud). If the user declined the
+`epiphan` server but has the claude.ai "Epiphan MCP" connector, the same tools appear as
+`mcp__claude_ai_Epiphan_MCP__*`; the same rules apply. Use the MCP tools for every device
 question or action. Don't guess device state, and don't reimplement what a tool already does.
 
 ## Data model
@@ -15,6 +17,20 @@ streams) + **recording_status**.
 - **Stream endpoints** are reusable team RTMP destinations. **Team presets** are config bundles.
 - **CMS events**: Epiphan Edge CMS events can be created and edited. Third-party CMS events
   (Panopto/Kaltura/Echo360/Opencast) are read-only here; they're managed in that CMS.
+
+## What the server supports (from Epiphan's docs)
+
+- Sign-in picks **one team**; the agent sees only what the user's account sees in that team.
+- **Write tools need an Epiphan Edge Premium plan.** Reads work without it.
+- Recording targets **channels**, not devices: name the channel, or every visible channel on the device starts.
+- Pause/resume recording needs Pearl firmware **4.24.6** or higher.
+- Reboot and firmware update take the device offline for a few minutes and interrupt any recording or stream.
+- Deleting a scheduled event is permanent.
+- **EC20** (camera) vs Pearl encoders: the EC20 supports the device list, details, storage, system health,
+  recording state, channel settings, preview frame, reboot and firmware update. Its input list shows audio
+  inputs only. It has **no** audio levels and **no** recording, streaming, scheduled-event, CMS-switch or preset actions.
+- Official guide: [Connect an AI assistant to Epiphan Cloud using MCP](https://kb.epiphan.com/cloud-edge/connect-an-ai-assistant-to-epiphan-cloud-using-mcp)
+  and [Epiphan MCP capabilities](https://kb.epiphan.com/cloud-edge/epiphan-mcp-capabilities).
 
 ## Tools
 
@@ -51,6 +67,8 @@ streams) + **recording_status**.
   (the user approves in the prompt). Afterwards, **verify** with read tools and report what you actually saw.
 - Only touch the devices the user named. Never widen a batch call on your own.
 - Never reboot or update firmware on a device that's recording, streaming, or has a CMS event starting soon.
+- Don't offer an action the device can't do (see the EC20 list above). A refused write may mean no Premium plan:
+  show the error word for word and say so.
 - Never show stream keys, passwords, or credentialed RTMP/SRT URLs. Mask them (`rtmp://host/app/••••`).
 - Resolve devices by name via `get_devices_in_my_team`. Don't hardcode IDs.
 - Don't put IPs or serial numbers on screen unless the user asks.

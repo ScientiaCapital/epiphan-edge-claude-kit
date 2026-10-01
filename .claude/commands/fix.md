@@ -9,6 +9,8 @@ allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_device_in
 Target: `$ARGUMENTS`, either a number from the last `/triage` table or a device name plus issue.
 If neither is clear, run the `/triage` steps first and ask which item.
 
+Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware update are available.
+
 1. **Re-read the current state** of that device. Things change. If the issue is already gone, say so and stop.
 2. **Is there a remote fix?** Map the issue to a tool:
    | Issue | Remote fix |
