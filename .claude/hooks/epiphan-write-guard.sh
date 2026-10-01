@@ -4,7 +4,7 @@
 # needs your approval, including write tools the server adds later. Disruptive ones
 # (reboot, firmware, stop, delete) get a louder warning in the approval prompt.
 name=$(grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-tool=${name#mcp__epiphan__}
+tool=${name##*__}   # strip the server prefix (mcp__epiphan__ or mcp__claude_ai_Epiphan_MCP__)
 
 ask() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"%s"}}\n' "$1"

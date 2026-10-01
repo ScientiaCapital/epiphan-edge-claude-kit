@@ -12,8 +12,10 @@ New checks are the best contribution: a command that answers a question you keep
 ## Rules for commands
 
 - Tool names use the `mcp__epiphan__` prefix (the server name in `.mcp.json`).
-- **`allowed-tools` lists read tools only** (`get_*`, `kb_*`, `Bash(date*)`). Listing a write tool there
-  pre-approves it and skips the user's approval prompt.
+- Run `bash tests/hook-test.sh` if you touch the hook or `.claude/settings.json`. CI runs it on every PR.
+- **`allowed-tools` lists read tools only** (`get_*`, `kb_*`, `Bash(date*)`). `allowed-tools` pre-approves
+  tools. Today the `ask` rules in `.claude/settings.json` still win, but anyone who removes those rules
+  would then get writes with no prompt, so keep writes out.
 - A command that writes must: resolve the target by name → pre-flight → show the exact call → let the user
   approve → verify with read tools → print the rollback. See `.claude/commands/record.md`.
 - Batch tool calls (one call for many devices) instead of looping per device.

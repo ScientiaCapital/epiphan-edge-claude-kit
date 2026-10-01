@@ -1,5 +1,4 @@
 {
-  "enabledMcpjsonServers": ["epiphan"],
   "permissions": {
     "allow": [
       "mcp__epiphan__get_devices_in_my_team",
@@ -38,17 +37,32 @@
       "mcp__epiphan__apply_team_preset",
       "mcp__epiphan__switch_device_to_cms",
       "mcp__epiphan__batch_reboot",
-      "mcp__epiphan__batch_firmware_update"
+      "mcp__epiphan__batch_firmware_update",
+      "mcp__claude_ai_Epiphan_MCP__batch_recording",
+      "mcp__claude_ai_Epiphan_MCP__start_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__stop_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__create_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__update_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__delete_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__cms_event_action",
+      "mcp__claude_ai_Epiphan_MCP__confirm_cms_event_on_device",
+      "mcp__claude_ai_Epiphan_MCP__create_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__update_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__delete_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__apply_team_preset",
+      "mcp__claude_ai_Epiphan_MCP__switch_device_to_cms",
+      "mcp__claude_ai_Epiphan_MCP__batch_reboot",
+      "mcp__claude_ai_Epiphan_MCP__batch_firmware_update"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__epiphan__.*",
+        "matcher": "^mcp__(epiphan|claude_ai_Epiphan_MCP)__",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/epiphan-write-guard.sh\""
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/epiphan-write-guard.sh\""
           }
         ]
       }
