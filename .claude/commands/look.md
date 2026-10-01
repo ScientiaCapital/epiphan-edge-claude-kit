@@ -1,0 +1,20 @@
+---
+description: "Visually verify a room: live preview image + audio levels"
+argument-hint: "<room/device name> [channel name]"
+allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_device_sources
+---
+
+# /look: Eyes on the Room
+
+Target: `$ARGUMENTS`. If empty, list the online devices and ask which room.
+
+1. Resolve the device by name (fuzzy match) with `get_devices_in_my_team`. If it's offline, say so and
+   suggest an online device in the same group.
+2. Pick the channel (named in arguments, else the "Program" channel, else channel 1). Check that channel's
+   `channel_no_signal` warning in the device list. Source warnings are input-level and may not affect it.
+3. `get_channel_image` with `format: "binary"`. The image goes to the model, not the terminal, so
+   **describe the frame concretely**: what's on screen, any text, people, slide or camera shot. If `is_stub`
+   is true, explain "no signal" and point to the warning. Don't read out personal emails or phone numbers shown on screen.
+4. `get_channel_audio_levels`. Values are RMS dBFS per channel: below −50 is silent, −30 to −10 is
+   speech-level, above −6 is hot. Report in plain terms.
+5. One-sentence verdict: "Room is live / room is dark / video OK but no audio", and why.
