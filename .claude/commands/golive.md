@@ -16,8 +16,8 @@ If the target is an EC20, say so and stop.
 2. **Pre-flight**: run the `/preflight` checks for this room with action "stream" (signal, audio, conflicts;
    storage isn't needed). If the verdict is **NO-GO**, stop and say why.
    For `stop`, skip pre-flight: only resolve the device and endpoint and confirm it's actually streaming.
-3. **Show the call** as a code block: `start_stream_endpoint` (or `stop_stream_endpoint`) with `stream_id`,
-   `device_id` and `channel_id`, for this one channel and endpoint only. Mask any credentials in the block.
+3. **Show the call** as a code block: `start_stream_endpoint` (or `stop_stream_endpoint`) with the real args
+   from its schema, for this one channel and endpoint only. Mask any credentials in the block.
 4. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
    If the server refuses the call, show its error word for word; a permission or plan error usually means the
    team isn't on Edge Premium.

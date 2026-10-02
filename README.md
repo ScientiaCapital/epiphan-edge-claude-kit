@@ -170,7 +170,9 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 ```
 
 Using the claude.ai "Epiphan MCP" connector instead? Add the same 15 names again with the
-`mcp__claude_ai_Epiphan_MCP__` prefix.
+`mcp__claude_ai_Epiphan_MCP__` prefix. Named it something else? The prefix is `mcp__claude_ai_` plus the
+connector name with spaces as underscores (for "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Type `/mcp`
+to see the exact name.
 
 ## Make it yours
 
