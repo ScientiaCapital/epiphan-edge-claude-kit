@@ -20,7 +20,10 @@ have_git() { git --version >/dev/null 2>&1; }
 download_tarball() {
   local tmp
   tmp=$(mktemp -d)
-  curl -fsSL "$REPO/archive/refs/heads/main.tar.gz" | tar -xz -C "$tmp"
+  if ! curl -fsSL "$REPO/archive/refs/heads/main.tar.gz" | tar -xz -C "$tmp"; then
+    rm -rf "$tmp"
+    fail "The download failed. Check your internet connection, then paste the install line again."
+  fi
   mkdir -p "$DIR"
   cp -R "$tmp/epiphan-edge-claude-kit-main/." "$DIR/"  # copy over, so your own files stay
   rm -rf "$tmp"
@@ -76,12 +79,12 @@ esac
 # North America is the default in .mcp.json. Other regions get a private override for this
 # folder (stored in ~/.claude.json), so the shared files never change and updates keep working.
 (
-  cd "$DIR"
+  cd "$DIR" || exit 1  # set -e is off inside a subshell on the left of ||
   claude mcp remove --scope local epiphan >/dev/null 2>&1 || true
   if [ "$url" != "https://go.epiphan.cloud/mcp" ]; then
     claude mcp add --scope local --transport http epiphan "$url" >/dev/null
   fi
-)
+) || fail "Couldn't set the region. Paste the install line again."
 echo "Using $url"
 
 say "Step 4 of 4: Open Claude Code"

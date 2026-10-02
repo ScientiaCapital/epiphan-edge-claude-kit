@@ -15,11 +15,13 @@ If the target is an EC20, say so and stop.
    **Never print stream keys, passwords, or full RTMP/SRT URLs.** Mask them: `rtmp://host/app/••••`.
 2. **Pre-flight**: run the `/preflight` checks for this room with action "stream" (signal, audio, conflicts;
    storage isn't needed). If the verdict is **NO-GO**, stop and say why.
-3. **Show the call** as a code block: `start_stream_endpoint` (or `stop_stream_endpoint`) with the real args
-   from its schema, for this one device/channel and endpoint only. Mask any credentials in the block.
+   For `stop`, skip pre-flight: only resolve the device and endpoint and confirm it's actually streaming.
+3. **Show the call** as a code block: `start_stream_endpoint` (or `stop_stream_endpoint`) with `stream_id`,
+   `device_id` and `channel_id`, for this one channel and endpoint only. Mask any credentials in the block.
 4. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
    If the server refuses the call, show its error word for word; a permission or plan error usually means the
    team isn't on Edge Premium.
-5. **Verify**: re-read the endpoint / device publisher state and confirm it's streaming, plus one
-   `get_channel_image` to show the picture going out is live. Report what you actually saw.
+5. **Verify**: `get_stream_endpoint` and `get_recorder_status_for_devices` for this device, and confirm the
+   stream state changed. For `start`, one `get_channel_image` shows the picture going out is live. If the state
+   hasn't changed yet, re-read once more; don't loop. Report what you actually saw.
 6. **Rollback**: print the one-line opposite command (e.g. `/golive <room> <endpoint> stop`).

@@ -25,5 +25,9 @@ Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware 
    event starts soon, say **not now**, name the next safe window, and stop.
 4. **Show the plan**: the exact call (real args, this one device only), expected downtime, and how you'll verify.
 5. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
+   If the server refuses the call, show its error word for word; a permission or plan error usually means the
+   team isn't on Edge Premium.
 6. **Verify**: re-read the device (firmware version, warnings, status). Reboots and updates take minutes, so if
    it's still offline, say so and suggest re-running `/fix` or `/fleet` later rather than polling in a loop.
+7. **Rollback**: for a preset or CMS switch, name the previous preset or CMS so it can be put back. A reboot
+   or firmware update has no rollback. Say so.

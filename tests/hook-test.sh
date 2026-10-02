@@ -33,7 +33,13 @@ expect ask "malformed input" 'not json'
 for p in epiphan claude_ai_Epiphan_MCP; do
   n=$(jq --arg p "mcp__${p}__" '[.permissions.ask[] | select(startswith($p))] | length' .claude/settings.json)
   if [ "$n" -eq 15 ]; then echo "ok   settings ask has 15 writes for $p"; else echo "FAIL settings ask has $n writes for $p"; fails=$((fails + 1)); fi
+  n=$(jq --arg p "mcp__${p}__" '[.permissions.allow[] | select(startswith($p))] | length' .claude/settings.json)
+  if [ "$n" -eq 20 ]; then echo "ok   settings allow has 20 reads for $p"; else echo "FAIL settings allow has $n reads for $p"; fails=$((fails + 1)); fi
 done
+# README's copy-paste read-only "deny" block must list exactly the same writes as settings.json.
+readme=$(grep -o '"mcp__epiphan__[a-z_]*"' README.md | tr -d '"' | sort)
+settings=$(jq -r '.permissions.ask[] | select(startswith("mcp__epiphan__"))' .claude/settings.json | sort)
+if [ "$readme" = "$settings" ]; then echo "ok   README deny list matches settings ask"; else echo "FAIL README deny list differs from settings ask"; fails=$((fails + 1)); fi
 bad=$(jq '[.permissions.allow[] | select(test("__(get_|kb_)") | not)] | length' .claude/settings.json)
 if [ "$bad" -eq 0 ]; then echo "ok   allow list is reads only"; else echo "FAIL $bad non-read tools in allow"; fails=$((fails + 1)); fi
 if grep -l 'allowed-tools:.*__\(batch_\|start_\|stop_\|create_\|update_\|delete_\|apply_\|switch_\|cms_event_action\|confirm_\)' .claude/commands/*.md; then
