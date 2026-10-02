@@ -18,8 +18,10 @@ If the target is an EC20, say so and stop.
    targeting only the channel device ID `<device_id>-<channel_id>` the user asked for. Never add other devices.
    If a CMS event is about to start on this channel, warn that a manual recording may collide with it.
 3. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
-   If the server refuses the call, show its error word for word; a permission or plan error usually means the
-   team isn't on Edge Premium.
-4. **Verify** (about 5–10 s later): `get_recorder_status_for_devices` shows the expected state, and for `start`
-   one more `get_channel_image` confirms the picture is still live. Report what you saw, not what you expected.
+   `batch_recording` returns a map of channel device ID → error; an empty map means success. Show any entry
+   word for word. If the server refuses the whole call, show its error word for word; a permission or plan
+   error usually means the team isn't on Edge Premium.
+4. **Verify**: `get_recorder_status_for_devices` for this device shows the expected state. If it hasn't changed
+   yet, re-read once more; don't loop. For `start`, one more `get_channel_image` confirms the picture is still
+   live. Report what you saw, not what you expected.
 5. **Rollback**: print the one-line opposite command (e.g. `/record <room> stop`) so it's ready to paste.

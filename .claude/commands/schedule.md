@@ -17,7 +17,7 @@ Scope: `$ARGUMENTS` (default: whole team).
 4. **At risk**: flag events on devices that are offline, have `disk_space_error`, or have no signal on the
    event's channels. For disk risk, show free GB (`get_storage_status_for_devices`) and **when the disk fills**:
    sum `encoder.vbitrate` + `encoder.audio_bitrate` (kbps, from `get_channel_settings`) across the event's
-   recording channels. If vbitrate is `auto`, use W×H×FPS×0.09. Report "disk full ~N min into the event."
+   recording channels. If vbitrate is `auto`, use W×H×FPS×0.09 bps (÷1000 for kbps). Report "disk full ~N min into the event."
    A storage state of `""` on an offline device means "storage unreadable (offline)".
 5. One closing line: "N upcoming events, M at risk," and name the most urgent one.
 

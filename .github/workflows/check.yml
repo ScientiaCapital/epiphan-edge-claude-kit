@@ -18,7 +18,11 @@ jobs:
       - name: shellcheck
         run: shellcheck install.sh .claude/hooks/epiphan-write-guard.sh tests/hook-test.sh
       - name: JSON is valid
-        run: for f in .mcp.json .claude/settings.json; do jq -e . "$f" > /dev/null && echo "$f ok"; done
+        run: |
+          for f in .mcp.json .claude/settings.json; do
+            jq -e . "$f" > /dev/null || { echo "$f is not valid JSON"; exit 1; }
+            echo "$f ok"
+          done
       - name: Shell scripts are stored with LF line endings
         run: |
           if git ls-files --eol '*.sh' | grep -v 'i/lf'; then echo "CRLF found in a .sh file"; exit 1; fi

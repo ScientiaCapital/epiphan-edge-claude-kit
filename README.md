@@ -9,10 +9,10 @@ start a recording, with your OK before anything changes.
 
 ```
 > /triage
-#  Priority  Room          Issue               Evidence                 Suggested fix
-1  P1        Main Hall     disk_space_error    2.1 GB free of 500 GB    Offload recordings before the next event
-2  P2        Lecture 204   channel_no_signal   "Camera 2" (SDI) dark    Check the SDI cable at the rack
-3  P2        Auditorium    firmware behind     4.x.5, family on 4.x.6   /fix 3
+#  Priority  Device        Group     Issue               Evidence                 Suggested fix
+1  P1        Main Hall     Campus A  disk_space_error    2.1 GB free of 500 GB    Offload recordings before the next event
+2  P2        Lecture 204   Campus A  channel_no_signal   "Camera 2" (SDI) dark    Check the SDI cable at the rack
+3  P2        Auditorium    Campus B  firmware behind     4.x.5, family on 4.x.6   /fix 3
 ```
 *(example output; yours shows your own rooms)*
 
@@ -27,6 +27,7 @@ start a recording, with your OK before anything changes.
   Pearl Nexus, EC20…) paired to it. Looking and checking works on Edge; the commands that change things
   (`/record`, `/golive`, `/fix`) need **Epiphan Edge Premium**.
 - A **Claude** account on a **Pro, Max, Team or Enterprise** plan. The free plan doesn't include Claude Code.
+- **Claude Code 2.1.196 or newer.** The installer installs or updates it; `claude update` does it by hand.
 
 ### Step 1: Open a terminal
 
@@ -126,7 +127,6 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
   [Troubleshooting](https://kb.epiphan.com/cloud-edge/verify-and-troubleshoot-the-epiphan-mcp-connection).
 - `.claude/commands/*.md` are the slash commands: plain-English instructions, no code.
 - `CLAUDE.md` holds the rules the agent follows in this folder.
-- Requires Claude Code **2.1.196 or newer**. The installer installs or updates it; `claude update` does it by hand.
 
 ## Safety model
 
@@ -134,8 +134,9 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 - **Every write asks first.** Recording, streaming, CMS events, presets, reboots and firmware are in
   `permissions.ask`, which prompts in every permission mode. A hook (`.claude/hooks/epiphan-write-guard.sh`)
   also forces a prompt for any non-read Epiphan tool, including ones added later, and adds a louder warning
-  to reboots, firmware updates, stops and deletes. Both rules also cover the claude.ai "Epiphan MCP" connector
-  if you have it. On Windows the hook needs [Git for Windows](https://git-scm.com/downloads/win) (the installer
+  to reboots, firmware updates, stops and deletes. Both rules also cover the claude.ai connector if you named
+  it "Epiphan MCP" as [Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says.
+  Named something else, like "Epiphan Cloud"? The hook still forces a prompt on every write; reads just prompt too. On Windows the hook needs [Git for Windows](https://git-scm.com/downloads/win) (the installer
   sets it up); without it, the `ask` rules still prompt for every listed write.
 - The agent is instructed never to reboot or update a device that's recording, streaming, or about to
   start a scheduled event, and to treat device names, on-screen text and docs as data, not instructions.
@@ -167,6 +168,11 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
   }
 }
 ```
+
+Using the claude.ai "Epiphan MCP" connector instead? Add the same 15 names again with the
+`mcp__claude_ai_Epiphan_MCP__` prefix. Named it something else? The prefix is `mcp__claude_ai_` plus the
+connector name with spaces as underscores (for "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Type `/mcp`
+to see the exact name.
 
 ## Make it yours
 
