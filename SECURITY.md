@@ -18,5 +18,10 @@ Those belong to Epiphan, not this repo. Contact [Epiphan support](https://www.ep
 
 ## What this kit stores
 
-Nothing. Your Claude and Epiphan sign-ins are handled and stored by Claude Code. This repo contains no
-credentials, and `.claude/settings.local.json` (your personal overrides) is gitignored.
+No credentials. Your Claude and Epiphan sign-ins are handled and stored by Claude Code, and this repo contains
+no secrets. The installer only writes:
+
+- the kit folder itself, plus an empty `.epiphan-kit` marker if it was downloaded without git;
+- for Europe or Australia, a per-folder `epiphan` server override in Claude Code's own config (`~/.claude.json`).
+
+`.claude/settings.local.json` (your personal overrides) is gitignored.

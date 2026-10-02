@@ -12,7 +12,6 @@ New checks are the best contribution: a command that answers a question you keep
 ## Rules for commands
 
 - Tool names use the `mcp__epiphan__` prefix (the server name in `.mcp.json`).
-- Run `bash tests/hook-test.sh` if you touch the hook or `.claude/settings.json`. CI runs it on every PR.
 - **`allowed-tools` lists read tools only** (`get_*`, `kb_*`, and the harmless `Bash(date*)`). `allowed-tools` pre-approves
   tools. Today the `ask` rules in `.claude/settings.json` still win, but anyone who removes those rules
   would then get writes with no prompt, so keep writes out.
@@ -23,9 +22,17 @@ New checks are the best contribution: a command that answers a question you keep
   need Edge Premium. See the "What the server supports" list in `CLAUDE.md`.
 - Mask stream keys and credentialed URLs. No IPs or serial numbers in the output by default.
 
+## Testing
+
+- `bash tests/hook-test.sh` checks the hook, the `allow`/`ask` lists in `.claude/settings.json`, the README's
+  read-only list, and that no command pre-approves a write. It needs `jq`.
+- `shellcheck install.sh .claude/hooks/epiphan-write-guard.sh tests/hook-test.sh` if you touch a script.
+- CI runs both on every PR, plus the installers on macOS, Linux and Windows.
+
 ## PR checklist
 
 - [ ] No real device names, IPs, serials, stream keys, emails or screenshots from your own fleet
 - [ ] `allowed-tools` contains no write tools
 - [ ] Ran it end to end at least once, and the description says whether it changes anything
+- [ ] `bash tests/hook-test.sh` passes
 - [ ] Added a row to the command tables in `README.md` and `CLAUDE.md`

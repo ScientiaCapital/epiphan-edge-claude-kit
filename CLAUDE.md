@@ -4,7 +4,7 @@ This workspace lets Claude Code see and operate an **Epiphan Edge** fleet throug
 (project `.mcp.json`, server name `epiphan`, tools `mcp__epiphan__*`). The installer may point `epiphan` at
 the user's region (North America `go.`, Europe `eu.`, Australia `au.`epiphan.cloud). If the user declined the
 `epiphan` server but has the claude.ai "Epiphan MCP" connector, the same tools appear as
-`mcp__claude_ai_Epiphan_MCP__*`; the same rules apply. Use the MCP tools for every device
+`mcp__claude_ai_Epiphan_MCP__*` (a connector given another name gets another prefix); the same rules apply. Use the MCP tools for every device
 question or action. Don't guess device state, and don't reimplement what a tool already does.
 
 ## Data model
@@ -34,7 +34,7 @@ streams) + **recording_status**.
 
 ## Tools
 
-**Read (auto-allowed):** `get_devices_in_my_team`, `get_device_info`, `get_device_sources`,
+**Read (auto-allowed, under both prefixes):** `get_devices_in_my_team`, `get_device_info`, `get_device_sources`,
 `get_system_status_for_devices`, `get_recorder_status_for_devices`, `get_storage_status_for_devices`,
 `get_channel_settings`, `get_stream_endpoint(s)`, `get_team_presets`, `get_cms_events_for_device(s)`,
 `get_current_or_next_cms_event_for_device(s)`, `get_cms_names_for_devices`, `get_devices_by_cms`,
