@@ -134,8 +134,9 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 - **Every write asks first.** Recording, streaming, CMS events, presets, reboots and firmware are in
   `permissions.ask`, which prompts in every permission mode. A hook (`.claude/hooks/epiphan-write-guard.sh`)
   also forces a prompt for any non-read Epiphan tool, including ones added later, and adds a louder warning
-  to reboots, firmware updates, stops and deletes. Both rules also cover the claude.ai "Epiphan MCP" connector
-  if you have it. On Windows the hook needs [Git for Windows](https://git-scm.com/downloads/win) (the installer
+  to reboots, firmware updates, stops and deletes. Both rules also cover the claude.ai connector if you named
+  it "Epiphan MCP" as [Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says.
+  Named something else, like "Epiphan Cloud"? The hook still forces a prompt on every write; reads just prompt too. On Windows the hook needs [Git for Windows](https://git-scm.com/downloads/win) (the installer
   sets it up); without it, the `ask` rules still prompt for every listed write.
 - The agent is instructed never to reboot or update a device that's recording, streaming, or about to
   start a scheduled event, and to treat device names, on-screen text and docs as data, not instructions.

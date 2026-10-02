@@ -78,7 +78,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^mcp__(epiphan|claude_ai_Epiphan_MCP)__",
+        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee]piphan_([Mm][Cc][Pp]|[Cc]loud|[Ee]dge)(_[A-Za-z0-9]+)*)__",
         "hooks": [
           {
             "type": "command",

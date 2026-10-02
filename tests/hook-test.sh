@@ -37,11 +37,19 @@ for p in epiphan claude_ai_Epiphan_MCP; do
   if [ "$n" -eq 20 ]; then echo "ok   settings allow has 20 reads for $p"; else echo "FAIL settings allow has $n reads for $p"; fails=$((fails + 1)); fi
 done
 # README's copy-paste read-only "deny" block must list exactly the same writes as settings.json.
-readme=$(grep -o '"mcp__epiphan__[a-z_]*"' README.md | tr -d '"' | sort)
-settings=$(jq -r '.permissions.ask[] | select(startswith("mcp__epiphan__"))' .claude/settings.json | sort)
+readme=$(grep -o '"mcp__epiphan__[a-z_]*"' README.md | tr -d '"\r' | sort)
+settings=$(jq -r '.permissions.ask[] | select(startswith("mcp__epiphan__"))' .claude/settings.json | tr -d '\r' | sort)  # jq.exe on Windows prints CRLF
 if [ "$readme" = "$settings" ]; then echo "ok   README deny list matches settings ask"; else echo "FAIL README deny list differs from settings ask"; fails=$((fails + 1)); fi
 bad=$(jq '[.permissions.allow[] | select(test("__(get_|kb_)") | not)] | length' .claude/settings.json)
 if [ "$bad" -eq 0 ]; then echo "ok   allow list is reads only"; else echo "FAIL $bad non-read tools in allow"; fails=$((fails + 1)); fi
+# The hook's matcher must catch the server and an Epiphan connector under any likely name, but not unrelated ones.
+matcher=$(jq -r '.hooks.PreToolUse[0].matcher' .claude/settings.json | tr -d '\r')
+for n in epiphan claude_ai_Epiphan_MCP claude_ai_epiphan_mcp claude_ai_Epiphan_Cloud claude_ai_My_Epiphan_Cloud claude_ai_Epiphan_Edge claude_ai_Epiphan_Cloud_EU; do
+  if jq -en --arg n "mcp__${n}__batch_reboot" --arg m "$matcher" '$n | test($m)' >/dev/null; then echo "ok   matcher guards $n"; else echo "FAIL matcher misses $n"; fails=$((fails + 1)); fi
+done
+for n in claude_ai_Gmail claude_ai_Epiphan_Notes epiphanx; do
+  if jq -en --arg n "mcp__${n}__search" --arg m "$matcher" '$n | test($m)' >/dev/null; then echo "FAIL matcher wrongly guards $n"; fails=$((fails + 1)); else echo "ok   matcher ignores $n"; fi
+done
 if grep -l 'allowed-tools:.*__\(batch_\|start_\|stop_\|create_\|update_\|delete_\|apply_\|switch_\|cms_event_action\|confirm_\)' .claude/commands/*.md; then
   echo "FAIL a command pre-approves a write tool"; fails=$((fails + 1))
 else echo "ok   no command pre-approves a write tool"; fi

@@ -9,9 +9,9 @@ The user may be brand new to the terminal and to Claude Code. Use short sentence
 and tell them exactly what to type. No jargon.
 
 1. **Is the Epiphan server here?** If `mcp__epiphan__*` tools are available, use them. If not, but the claude.ai
-   connector's `mcp__claude_ai_Epiphan_MCP__*` tools are, use those instead and carry on (the sign-in steps
-   below are then done in claude.ai, under Settings → Connectors). If neither is available, the server wasn't
-   approved. Tell the user: type `/mcp`, choose **epiphan**, and enable or approve it. Then type `/start` again. Stop.
+   connector's tools are (`mcp__claude_ai_Epiphan_MCP__*`, or a similar Epiphan name), use those instead and
+   carry on (the sign-in steps below are then done in claude.ai, under Settings → Connectors). If neither is
+   available, the server wasn't approved. Tell the user: type `/mcp`, choose **epiphan**, and enable or approve it. Then type `/start` again. Stop.
 2. **Are you signed in?** Call `get_devices_in_my_team`.
    - If it returns an error mentioning `FORBIDDEN`, `401` or `unauthorized`, they aren't signed in yet.
      Show these steps exactly, as a numbered list, then stop:

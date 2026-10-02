@@ -4,7 +4,7 @@ This workspace lets Claude Code see and operate an **Epiphan Edge** fleet throug
 (project `.mcp.json`, server name `epiphan`, tools `mcp__epiphan__*`). The installer may point `epiphan` at
 the user's region (North America `go.`, Europe `eu.`, Australia `au.`epiphan.cloud). If the user declined the
 `epiphan` server but has the claude.ai "Epiphan MCP" connector, the same tools appear as
-`mcp__claude_ai_Epiphan_MCP__*`; the same rules and permissions apply. Use the MCP tools for every device
+`mcp__claude_ai_Epiphan_MCP__*` (a connector given another name gets another prefix); the same rules apply. Use the MCP tools for every device
 question or action. Don't guess device state, and don't reimplement what a tool already does.
 
 ## Data model
