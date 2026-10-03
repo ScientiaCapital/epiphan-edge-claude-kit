@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.0.1 (2026-10-03)
+
+Fixes from the devil's-advocate re-check of v1.0.0.
+
+- **Without jq, every secret-shaped result is withheld,** as the docs say: `Bearer` tokens, `pwd`/`credentials`
+  fields, "stream key: ..." text, and URLs with `user:password@` or a `?query`. v1.0.0 let these through.
+- **Other Epiphan connectors are left alone.** The hooks act on Epiphan Edge's own tools (under any connector
+  name) and on the Edge server itself, so a docs or CRM connector no longer prompts with a "changes device
+  state" warning or gets its data masked.
+- A password whose value looks like a field name ("secret", "token") is masked. A server named `kb_...` no
+  longer skips redaction. `pwd` and `credentials` fields no longer skip the quick pre-check.
+- One text value over 200 KB is withheld on its own, in milliseconds, instead of stalling the whole result.
+- README and SECURITY.md state the size limits and the no-hooks fallback exactly. Homebrew no longer
+  auto-updates silently while installing jq.
+- Tests: 101 checks, including the no-jq path, other Epiphan services, and that both hooks and settings.json
+  list the same 35 tools.
+
 ## v1.0.0 (2026-10-03)
 
 First tagged release, after a full audit and an adversarial review.

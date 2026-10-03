@@ -37,6 +37,13 @@ expect ask  "malformed input still asks" 'not json "tool_name":"mcp__epiphan__ba
 expect deny "unreadable call is blocked" 'not json'
 expect ask "odd tool name stays valid JSON" '{"tool_name":"mcp__epiphan__evil\\\"x\\\\"}'
 
+# Other Epiphan services (docs, CRM, ...) are left to normal permissions; Epiphan Edge tools are guarded under
+# any connector name, and unknown tools only on the device server itself.
+expect pass "other Epiphan service, unknown tool"  '{"tool_name":"mcp__claude_ai_Epiphan_Knowledge__search"}'
+expect ask  "known write on an odd connector name" '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__batch_reboot"}'
+expect ask  "unknown write on a device connector"  '{"tool_name":"mcp__claude_ai_EpiphanCloud__new_thing"}'
+expect ask  "unknown write on epiphan-eu"          '{"tool_name":"mcp__epiphan-eu__new_thing"}'
+
 # Bypass mode skips "ask", so writes must be denied there. Reads still pass.
 for m in default acceptEdits auto dontAsk plan; do
   expect ask "write in $m mode" "{\"permission_mode\":\"$m\",\"tool_name\":\"mcp__epiphan__batch_recording\"}"
@@ -81,6 +88,39 @@ redacts "https credentials"      '{"u":"https://user:FAKE11@host.example/x?cid=F
 redacts "uppercase / rtmpt"      '{"a":"RTMP://h/app/FAKE13","b":"rtmpt://h/app/FAKE14"}'
 redacts "Authorization header"   '{"headers":{"Authorization":"Bearer FAKE15"}}'
 redacts "key in an array"        '{"stream_key":["FAKE16"]}'
+redacts "pwd and credentials"    '{"pwd":"FAKE17","credentials":"FAKE18"}'
+redacts "weak password values"   '{"password":"FAKEsecret","stream_key":"FAKE_token"}'
+out=$(printf '%s' '{"tool_name":"mcp__epiphan__get_device_info","tool_response":{"password":"secret","stream_key":"token"}}' | bash "$redact")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.updatedToolOutput == {"password":"[redacted]","stream_key":"[redacted]"}' >/dev/null 2>&1; then
+  ok "masks a password whose value looks like a field name"; else bad "weak password value leaked: $out"; fi
+out=$(printf '%s' '{"tool_name":"mcp__kb_epiphan__get_stream_endpoints","tool_response":{"stream_key":"FAKE"}}' | bash "$redact")
+if [ -n "$out" ] && ! printf '%s' "$out" | grep -q FAKE; then ok "a server named kb_... is still redacted"; else bad "kb_ server skipped redaction"; fi
+out=$(printf '%s' '{"tool_name":"mcp__claude_ai_Epiphan_Ai__execute_sql","tool_response":{"key":"ACME-42","auth":"sso"}}' | bash "$redact")
+if [ -z "$out" ]; then ok "leaves other Epiphan services' data alone"; else bad "masked another service's data: $out"; fi
+big=$(jq -cn '{tool_name:"mcp__epiphan__get_device_info",tool_response:[{type:"text",text:("stream key: FAKE " * 20000)}]}')
+start=$SECONDS; out=$(printf '%s' "$big" | bash "$redact")
+if [ $((SECONDS - start)) -le 5 ] && [ -n "$out" ] && ! printf '%s' "$out" | grep -q FAKE; then ok "withholds one huge text value quickly"
+else bad "huge text value: $((SECONDS - start)) s or leaked"; fi
+# Without jq, anything secret-shaped is withheld; ordinary text passes.
+nojq=$(mktemp -d)
+for b in bash cat grep head printf mktemp rm sleep sed tr wc; do p=$(command -v "$b") && ln -s "$p" "$nojq/$b" 2>/dev/null; done
+if PATH="$nojq" "$nojq/bash" -c 'exit 0' 2>/dev/null; then
+  for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}'; do
+    out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | PATH="$nojq" "$nojq/bash" "$redact")
+    case "$out" in *withheld*) ok "no jq: withholds $t" ;; *) bad "no jq: passed $t" ;; esac
+  done
+  out=$(printf '%s' '{"tool_name":"mcp__epiphan__get_cms_events_for_devices","tool_response":{"title":"Keynote: Passwords 101"}}' | PATH="$nojq" "$nojq/bash" "$redact")
+  if [ -z "$out" ]; then ok "no jq: ordinary text passes"; else bad "no jq: withheld ordinary text"; fi
+else
+  echo "skip no-jq checks (can't run a copied bash here, e.g. Git Bash on Windows)"
+fi
+rm -rf "$nojq"
+# Both hooks know the same Epiphan tools as settings.json.
+known=$(jq -r '.permissions.allow[], .permissions.ask[] | select(startswith("mcp__epiphan__")) | sub("mcp__epiphan__"; "")' .claude/settings.json | tr -d '\r' | sort | tr '\n' ' ')
+guard_known=$(grep -E '^(READS|WRITES)=' "$hook" | cut -d'"' -f2 | tr ' ' '\n' | grep . | sort | tr '\n' ' ')
+redact_known=$(grep -E '^KNOWN=' "$redact" | cut -d'"' -f2 | tr ' ' '\n' | grep . | sort | tr '\n' ' ')
+if [ "$known" = "$guard_known" ] && [ "$known" = "$redact_known" ]; then ok "hooks know the same 35 tools as settings.json"
+else bad "tool lists differ between settings.json and the hooks"; fi
 # Fields the commands need must survive: /golive uses StreamID, names and lock state.
 out=$(jq -cn '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:({streams:[{StreamID:"0be3-uuid",Name:"YouTube",LockByDevice:"190x",CurrentlyStreaming:false,RTMP:{StreamingKey:"FAKE",URL:"rtmp://a.example/live2"}}]}|tojson)}]}' | bash "$redact")
 if printf '%s' "$out" | jq -e '.hookSpecificOutput.updatedToolOutput[0].text | fromjson | .streams[0] | .StreamID == "0be3-uuid" and .Name == "YouTube" and .LockByDevice == "190x" and .RTMP.URL == "rtmp://a.example/[redacted]"' >/dev/null 2>&1; then
