@@ -96,8 +96,8 @@ fi
 
 # jq lets the kit hide stream keys from Claude (.claude/hooks/epiphan-redact.sh). macOS 15+ has it built in.
 if ! command -v jq >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
-  echo "Installing jq with Homebrew (used to hide stream keys from Claude)..."
-  brew install jq >/dev/null 2>&1 || true
+  echo "Installing jq with Homebrew (used to hide stream keys from Claude). This can take a minute..."
+  HOMEBREW_NO_AUTO_UPDATE=1 brew install jq >/dev/null 2>&1 || true
 fi
 if ! command -v jq >/dev/null 2>&1; then
   echo "Note: jq isn't installed. Until it is, results that may contain stream keys are withheld from Claude."
