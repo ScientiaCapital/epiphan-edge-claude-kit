@@ -20,13 +20,16 @@ New checks are the best contribution: a command that answers a question you keep
 - Batch tool calls (one call for many devices) instead of looping per device.
 - Respect what each device can do: the EC20 has no audio levels or recording/streaming control, and writes
   need Edge Premium. See the "What the server supports" list in `CLAUDE.md`.
-- Mask stream keys and credentialed URLs. No IPs or serial numbers in the output by default.
+- Mask stream keys and credentialed URLs (scheme and host only). The redaction hook catches most of them, but
+  don't rely on it. No IPs or serial numbers in the output by default.
 
 ## Testing
 
-- `bash tests/hook-test.sh` checks the hook, the `allow`/`ask` lists in `.claude/settings.json`, the README's
-  read-only list, and that no command pre-approves a write. It needs `jq`.
-- `shellcheck install.sh .claude/hooks/epiphan-write-guard.sh tests/hook-test.sh` if you touch a script.
+- `bash tests/hook-test.sh` checks both hooks (write guard, bypass-mode block, stream-key redaction including
+  fail-closed and a ~1 MB output), the matcher, the `allow`/`ask` lists and bypass setting in
+  `.claude/settings.json`, the README's read-only list, that every command is in the README and CLAUDE.md
+  tables, and that no command pre-approves a write. It needs `jq`.
+- `shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh` if you touch a script.
 - CI runs both on every PR, plus the installers on macOS, Linux and Windows.
 
 ## PR checklist
