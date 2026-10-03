@@ -19,7 +19,7 @@ Target: `$ARGUMENTS` (action defaults to "record"). If no room is named, list on
    - Audio: `get_channel_audio_levels`, read on the same dBFS-or-linear scale as `/look` (step 4 of
      `.claude/commands/look.md`)
    - Storage (record only): `get_storage_status_for_devices` free GB, and hours left at `encoder.vbitrate` +
-     `encoder.audio_bitrate` from `get_channel_settings` (if vbitrate is `auto`, use W×H×FPS×0.09 bps, ÷1000 for kbps)
+     `encoder.audio_bitrate` from `get_channel_settings` (if vbitrate is `auto`, use W×H×FPS×0.09 bps, or ×0.4 for MJPEG; ÷1000 for kbps)
    - Conflicts: `get_recorder_status_for_devices` (already recording?) and `get_cms_names_for_devices` +
      `get_current_or_next_cms_event_for_device` with `until` = now + 1 h (run `date`). A response with no
      `event` key means no conflict.

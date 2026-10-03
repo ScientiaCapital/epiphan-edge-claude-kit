@@ -7,6 +7,12 @@ the user's region (North America `go.`, Europe `eu.`, Australia `au.`epiphan.clo
 `mcp__claude_ai_Epiphan_MCP__*` (a connector given another name gets another prefix); the same rules apply. Use the MCP tools for every device
 question or action. Don't guess device state, and don't reimplement what a tool already does.
 
+**Which server to use:** always `mcp__epiphan__*` when it exists. It can take a few seconds to connect after
+Claude Code starts, so if its tools aren't listed yet, search for them again (`+epiphan`) before anything else.
+Fall back to a claude.ai connector only if `epiphan` still isn't there. If more than one Epiphan connector is
+present, ask the user which to use; never pick one silently. Whenever you use anything other than `epiphan`,
+name it in your answer.
+
 ## Data model
 
 Team → **Devices** (`Id`) → **Channels** (`channel_id` `"1"`, `"2"`…) → **Publishers** (RTMP/SRT/RTSP/NDI
@@ -44,7 +50,11 @@ streams) + **recording_status**.
 `create/update/delete_cms_event`, `cms_event_action`, `confirm_cms_event_on_device`,
 `create/update/delete_stream_endpoint`, `apply_team_preset`, `switch_device_to_cms`, `batch_reboot`,
 `batch_firmware_update`. These are in `permissions.ask` in `.claude/settings.json`, and
-`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any non-read tool, including new ones.
+`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any non-read tool, including new ones. Bypass mode is
+disabled in this folder; if a write comes back BLOCKED for bypass mode anyway, tell the user to leave it (`Shift+Tab`).
+`.claude/hooks/epiphan-redact.sh` replaces stream keys and credentialed URLs in tool output with `[redacted]`
+before you see them. That's expected: never ask the user for the real values. A result that says it was
+**withheld** couldn't be checked: pass on its advice (install `jq`, or ask about fewer devices) and don't guess.
 
 ## Commands
 
@@ -66,10 +76,11 @@ streams) + **recording_status**.
 - **Before any write**: resolve the target by name, check its current state, show the exact call, then make it
   (the user approves in the prompt). Afterwards, **verify** with read tools and report what you actually saw.
 - Only touch the devices the user named. Never widen a batch call on your own.
-- Never reboot or update firmware on a device that's recording, streaming, or has a CMS event starting soon.
+- Never reboot, update firmware or apply a preset on a device that's recording, streaming, or has a CMS event
+  starting soon. Warn before applying a preset with `network` or `system` sections.
 - Don't offer an action the device can't do (see the EC20 list above). A refused write may mean no Premium plan:
   show the error word for word and say so.
-- Never show stream keys, passwords, or credentialed RTMP/SRT URLs. Mask them (`rtmp://host/app/••••`).
+- Never show stream keys, passwords, or credentialed RTMP/SRT URLs. Show scheme and host only (`rtmp://host/••••`).
 - Resolve devices by name via `get_devices_in_my_team`. Don't hardcode IDs.
 - Don't put IPs or serial numbers on screen unless the user asks.
 - Before quoting KB results, check `low_confidence`. If it's true, say the docs don't cover it.

@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: shellcheck
-        run: shellcheck install.sh .claude/hooks/epiphan-write-guard.sh tests/hook-test.sh
+        run: shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh
       - name: JSON is valid
         run: |
           for f in .mcp.json .claude/settings.json; do

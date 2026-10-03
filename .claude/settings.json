@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "disableBypassPermissionsMode": "disable",
     "allow": [
       "mcp__epiphan__get_devices_in_my_team",
       "mcp__epiphan__get_device_info",
@@ -78,11 +79,22 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee]piphan_([Mm][Cc][Pp]|[Cc]loud|[Ee]dge)(_[A-Za-z0-9]+)*)__",
+        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
         "hooks": [
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/epiphan-write-guard.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/epiphan-redact.sh\""
           }
         ]
       }
