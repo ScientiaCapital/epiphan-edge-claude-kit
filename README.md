@@ -22,7 +22,7 @@ start a recording, with your OK before anything changes.
 
 ### What you need
 
-- A **Mac** (macOS 13+), **Windows** 10/11, or **Linux** computer
+- A **Mac** (macOS 13+; on 13–14 the installer adds `jq` if you have Homebrew), **Windows** 10/11, or **Linux** computer
 - A **paid Epiphan Edge account** with at least one Epiphan device (Pearl-2, Pearl Mini, Pearl Nano,
   Pearl Nexus, EC20…) paired to it. Looking and checking works on Edge; the commands that change things
   (`/record`, `/golive`, `/fix`) need **Epiphan Edge Premium**.
