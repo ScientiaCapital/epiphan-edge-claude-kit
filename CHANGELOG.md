@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.2 (2026-10-03)
+
+Closes the last four redaction gaps from the devil's-advocate test set (now 0 of 36 leak).
+
+- `streamid` / `stream_id` values are masked unless they're a UUID, so Epiphan's endpoint `StreamID` stays and an
+  SRT stream ID (which can carry credentials) doesn't.
+- `stream_name` values are masked (in RTMP the stream name is often the key).
+- https URLs that look like ingest points (WHIP, WHEP, ingest, publish, upload, live, ...) lose their path.
+- In text, a pipe table whose header names a secret column (key, stream key, password, token, ...) has that
+  column masked.
+- The no-jq fallback withholds the same shapes. Tests: 107 checks.
+
 ## v1.0.1 (2026-10-03)
 
 Fixes from the devil's-advocate re-check of v1.0.0.
