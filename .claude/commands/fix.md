@@ -22,7 +22,7 @@ Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware 
    | Disk full, no signal, unplugged input, offline unit | **No remote fix.** Say what someone on site must do, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
 3. **Safety check before any reboot, firmware update or preset**: `get_recorder_status_for_devices` (recording),
    `get_stream_endpoints` (an endpoint with `CurrentlyStreaming` true and `LockByDevice` = this device means it's
-   streaming; also check its publishers' `state` in the device list), and `get_current_or_next_cms_event_for_device`
+   streaming; also check its publishers' `status.state` in the device list), and `get_current_or_next_cms_event_for_device`
    with `until` = now + 2 h (run `date`). If it's recording, streaming, or an event starts soon, say **not now**,
    name the next safe window, and stop.
    **Presets:** list the preset's `sections`. If they include `network` or `system`, warn that applying it can

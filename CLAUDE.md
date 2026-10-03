@@ -50,10 +50,11 @@ streams) + **recording_status**.
 `create/update/delete_cms_event`, `cms_event_action`, `confirm_cms_event_on_device`,
 `create/update/delete_stream_endpoint`, `apply_team_preset`, `switch_device_to_cms`, `batch_reboot`,
 `batch_firmware_update`. These are in `permissions.ask` in `.claude/settings.json`, and
-`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any non-read tool, including new ones. In bypass
-mode (which skips prompts) the hook **blocks** writes instead: tell the user to leave bypass mode to approve.
+`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any non-read tool, including new ones. Bypass mode is
+disabled in this folder; if a write comes back BLOCKED for bypass mode anyway, tell the user to leave it (`Shift+Tab`).
 `.claude/hooks/epiphan-redact.sh` replaces stream keys and credentialed URLs in tool output with `[redacted]`
-before you see them. That's expected: never ask the user for the real values.
+before you see them. That's expected: never ask the user for the real values. A result that says it was
+**withheld** couldn't be checked: pass on its advice (install `jq`, or ask about fewer devices) and don't guess.
 
 ## Commands
 

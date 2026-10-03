@@ -61,7 +61,7 @@ else
 fi
 
 say "Step 3 of 4: Your Epiphan region"
-region="${EPIPHAN_REGION:-}"
+region=$(printf '%s' "${EPIPHAN_REGION:-}" | tr '[:upper:]' '[:lower:]')
 if [ -z "$region" ] && interactive; then
   echo "Which Epiphan Cloud region is your account on? (Not sure? It's the one you sign in to.)"
   echo "  1) North America  (go.epiphan.cloud)"
@@ -77,9 +77,10 @@ if [ -z "$region" ]; then
   echo "No region given. Keeping the current one (North America unless you picked another before)."
 else
   case "$region" in
+    na) url="https://go.epiphan.cloud/mcp" ;;
     eu) url="https://eu.epiphan.cloud/mcp" ;;
     au) url="https://au.epiphan.cloud/mcp" ;;
-    *)  url="https://go.epiphan.cloud/mcp" ;;
+    *)  fail "EPIPHAN_REGION is '$region'. Use na, eu or au." ;;
   esac
   # North America is the default in .mcp.json. Other regions get a private override for this
   # folder (stored in ~/.claude.json), so the shared files never change and updates keep working.
@@ -93,8 +94,14 @@ else
   echo "Using $url"
 fi
 
+# jq lets the kit hide stream keys from Claude (.claude/hooks/epiphan-redact.sh). macOS 15+ has it built in.
+if ! command -v jq >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
+  echo "Installing jq with Homebrew (used to hide stream keys from Claude)..."
+  brew install jq >/dev/null 2>&1 || true
+fi
 if ! command -v jq >/dev/null 2>&1; then
-  echo "Tip: install jq so the kit can hide stream keys from Claude (Mac: brew install jq; Linux: your package manager)."
+  echo "Note: jq isn't installed. Until it is, results that may contain stream keys are withheld from Claude."
+  echo "      Mac: brew install jq   Linux: install the jq package   Then nothing else to do."
 fi
 
 say "Step 4 of 4: Open Claude Code"
