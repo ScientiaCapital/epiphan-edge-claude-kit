@@ -88,6 +88,13 @@ redacts "https credentials"      '{"u":"https://user:FAKE11@host.example/x?cid=F
 redacts "uppercase / rtmpt"      '{"a":"RTMP://h/app/FAKE13","b":"rtmpt://h/app/FAKE14"}'
 redacts "Authorization header"   '{"headers":{"Authorization":"Bearer FAKE15"}}'
 redacts "key in an array"        '{"stream_key":["FAKE16"]}'
+redacts "SRT streamid field"     '{"streamid":"FAKE19"}'
+redacts "stream_name field"      '{"stream_name":"FAKE20"}'
+redacts "WHIP ingest path"       '{"u":"https://whip.example/whip/endpoint/FAKE21"}'
+redacts "table with a key column" "$(printf '| Name | Stream key |\n|---|---|\n| YT | FAKE22 |')"
+redacts "non-UUID StreamID"      '{"StreamID":"live/FAKE23"}'
+out=$(printf '%s' '{"tool_name":"mcp__epiphan__get_device_info","tool_response":{"t":"| Room | Status |\n| Hall | online |","u":"https://panopto.example.edu/Panopto/Pages/Viewer.aspx"}}' | bash "$redact")
+if [ -z "$out" ]; then ok "leaves ordinary tables and links alone"; else bad "changed an ordinary table or link: $out"; fi
 redacts "pwd and credentials"    '{"pwd":"FAKE17","credentials":"FAKE18"}'
 redacts "weak password values"   '{"password":"FAKEsecret","stream_key":"FAKE_token"}'
 out=$(printf '%s' '{"tool_name":"mcp__epiphan__get_device_info","tool_response":{"password":"secret","stream_key":"token"}}' | bash "$redact")
@@ -122,8 +129,8 @@ redact_known=$(grep -E '^KNOWN=' "$redact" | cut -d'"' -f2 | tr ' ' '\n' | grep 
 if [ "$known" = "$guard_known" ] && [ "$known" = "$redact_known" ]; then ok "hooks know the same 35 tools as settings.json"
 else bad "tool lists differ between settings.json and the hooks"; fi
 # Fields the commands need must survive: /golive uses StreamID, names and lock state.
-out=$(jq -cn '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:({streams:[{StreamID:"0be3-uuid",Name:"YouTube",LockByDevice:"190x",CurrentlyStreaming:false,RTMP:{StreamingKey:"FAKE",URL:"rtmp://a.example/live2"}}]}|tojson)}]}' | bash "$redact")
-if printf '%s' "$out" | jq -e '.hookSpecificOutput.updatedToolOutput[0].text | fromjson | .streams[0] | .StreamID == "0be3-uuid" and .Name == "YouTube" and .LockByDevice == "190x" and .RTMP.URL == "rtmp://a.example/[redacted]"' >/dev/null 2>&1; then
+out=$(jq -cn '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:({streams:[{StreamID:"0be33e88-d0f3-4421-8f26-f06c9092183c",Name:"YouTube",LockByDevice:"190x",CurrentlyStreaming:false,RTMP:{StreamingKey:"FAKE",URL:"rtmp://a.example/live2"}}]}|tojson)}]}' | bash "$redact")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.updatedToolOutput[0].text | fromjson | .streams[0] | .StreamID == "0be33e88-d0f3-4421-8f26-f06c9092183c" and .Name == "YouTube" and .LockByDevice == "190x" and .RTMP.URL == "rtmp://a.example/[redacted]"' >/dev/null 2>&1; then
   ok "keeps StreamID, Name and LockByDevice"
 else bad "redaction damaged fields the commands need: $out"; fi
 # Fail closed: output that looks secret but can't be checked in time is withheld, never passed through.

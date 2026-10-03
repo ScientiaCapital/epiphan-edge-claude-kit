@@ -40,7 +40,9 @@ no secrets. The installer only writes:
 Known limits, so you can judge them yourself:
 - Redaction hides secrets from the model only. The Epiphan server still sends them, and Claude Code keeps the
   original result in your local session history (`~/.claude/projects`) and, if you enabled it, in telemetry.
-- It matches the field names Epiphan uses today. Free text such as a table of keys may not be caught.
+- It recognises the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
+  with a key column, credentialed or ingest URLs). A secret written some other way may not be caught.
+  Epiphan's `StreamID` (a UUID that `/golive` needs) is kept; any other stream ID is masked.
 - Error output from a failed tool call isn't redacted (it normally echoes only what Claude sent).
 - Tools are classed as reads by name (`get_*`, `kb_*`). A future write tool named like a read would not prompt.
 - If hooks are disabled (`disableAllHooks`) or can't run (Windows without Git Bash), only `permissions.ask` and

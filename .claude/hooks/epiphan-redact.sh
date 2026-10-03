@@ -41,14 +41,14 @@ esac
 
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
 # (grep exits 1 for "no match"; anything else, like an error, goes on to the full check.)
-printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|:\\*/'
+printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|stream_?(id|name)|:\\*/'
 [ $? -eq 1 ] && exit 0
 
 if ! command -v jq >/dev/null 2>&1; then
   # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "pwd": ...),
   # "stream key: ..." or "Bearer ..." text, a streaming URL with a path, or any URL with user:password@ or a
   # ?query. Words like "Keynote" in an event title don't count.
-  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream[ _-]?key|password|passphrase|token)[[:space:]]*[:=]|bearer[[:space:]]|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*\?'
+  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream[ _-]?(key|name)|password|passphrase|token)[[:space:]]*[:=]|bearer[[:space:]]|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
   [ $? -eq 1 ] && exit 0
   withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
 fi
@@ -61,28 +61,50 @@ trap 'rm -f "$tmp"' EXIT
 { printf '%s' "$input" 2>/dev/null; } | jq -c '
   def secret_name:
     type == "string"
-    and test("^(?:.*[_-])?(?:streaming_?key|stream_?key|key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)$"; "i")
+    and test("^(?:.*[_-])?(?:streaming_?key|stream_?key|stream_?name|key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)$"; "i")
     and (test("page|cursor"; "i") | not);
+  def stream_id_name: type == "string" and test("^(?:.*[_-])?stream_?id$"; "i");
+  def uuid: type == "string" and test("^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$"; "i");
+  def table_secret_col: gsub("^\\s+|\\s+$"; "") | ascii_downcase | gsub("[ -]+"; "_") | (secret_name or stream_id_name);
+  def scrub_tables:  # a pipe table whose header names a secret column: mask that column
+    (if test("\n") then "\n" else "\\n" end) as $sep
+    | if ([split($sep)[] | select(test("^\\s*\\|"))] | length) < 2 then . else
+        reduce (split($sep)[]) as $l ({out: [], cols: null};
+          if ($l | test("^\\s*\\|") | not) then .cols = null | .out += [$l]
+          elif ($l | test("^\\s*\\|?[\\s:|-]+$")) then .out += [$l]
+          else
+            ($l | sub("^\\s*\\|"; "") | sub("\\|\\s*$"; "") | split("|")) as $cells
+            | if .cols == null then .cols = [range(0; $cells | length) | select($cells[.] | table_secret_col)] | .out += [$l]
+              elif (.cols | length) == 0 then .out += [$l]
+              else .cols as $c
+                | .out += ["|" + ([range(0; $cells | length) as $i
+                    | if any($c[]; . == $i) and ($cells[$i] | test("\\S")) then " [redacted] " else $cells[$i] end] | join("|")) + "|"]
+              end
+          end)
+        | .out | join($sep)
+      end;
   def mask: if type == "boolean" or type == "null" or . == "" then . else "[redacted]" end;
   def scrub_text:
     if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|stream"; "i") | not then .
     elif length > 200000 then "[Epiphan kit: a long text value was withheld because it was too long to check for stream keys]"
     else
-      gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist)://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<r>[/?#][^\\s\"'"'"'<>()\\[\\],]*)?";
+      (if test("\\|") then scrub_tables else . end)
+      | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist)://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<r>[/?#][^\\s\"'"'"'<>()\\[\\],]*)?";
            "\(.p)\(.h)\(if .r then "/[redacted]" else "" end)"; "i")
       | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist|https?):\\\\/\\\\/)(?<h>[^\\\\\\s\"'"'"'<>]+)(?<r>\\\\/[^\\s\"'"'"'<>]*)";
            "\(.p)\(.h)\\/[redacted]"; "i")
       | gsub("(?<p>\\bhttps?://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<path>/[^?#\\s\"'"'"'<>()\\[\\],]*)?(?<q>\\?[^\\s\"'"'"'<>()\\[\\],]*)?";
-           "\(.p)\(.h)\(.path // "")\(if .q then "?[redacted]" else "" end)"; "i")
-      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream[ _-]?key|password|passphrase|passwd|secret|client[_-]?secret|access[_-]?token|token|authorization)[\"'"'"']?\\s*[:=]\\s*[\"'"'"']?(?:bearer\\s+|basic\\s+)?)(?<v>[^\\s\"'"'"',;}\\]|]+)";
+           "\(.p)\(.h)\(if .path == null then "" elif ((.h + .path) | test("whip|whep|ingest|publish|upload|live|stream|rtmp|srt|push|broadcast"; "i")) then "/[redacted]" else .path end)\(if .q then "?[redacted]" else "" end)"; "i")
+      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream[ _-]?key|stream[ _-]?name|password|passphrase|passwd|secret|client[_-]?secret|access[_-]?token|token|authorization)[\"'"'"']?\\s*[:=]\\s*[\"'"'"']?(?:bearer\\s+|basic\\s+)?)(?<v>[^\\s\"'"'"',;}\\]|]+)";
            "\(.k)[redacted]"; "i")
     end;
   def redact:
     if type == "object" then
-      (if has("value") and ([.id, .name, .key] | any(secret_name)) then .value |= mask else . end)
+      (if has("value") and ([.id, .name, .key] | any(secret_name or stream_id_name)) then .value |= mask else . end)
       | has("value") as $pair
       | with_entries(
           if (.key | secret_name) and (($pair | not) or (.value | type) != "string" or (.value | secret_name | not)) then .value |= mask
+          elif (.key | stream_id_name) and (.value | uuid | not) then .value |= mask  # Epiphan StreamID is a UUID: kept
           else .value |= redact end)
     elif type == "array" then map(redact)
     elif type == "string" then
