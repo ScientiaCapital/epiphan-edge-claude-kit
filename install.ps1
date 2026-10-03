@@ -55,6 +55,10 @@
         winget install --id jqlang.jq -e --source winget --accept-package-agreements --accept-source-agreements *> $null
         Update-Path
     }
+    if (-not (Has jq)) {
+        Write-Warning 'jq is not installed. Until it is, results that may contain stream keys are withheld from Claude.'
+        Write-Warning 'Install it with: winget install jqlang.jq'
+    }
 
     Say 'Step 2 of 5: Claude Code'
     if (Has claude) {
@@ -114,7 +118,8 @@
         # No one to ask (CI) and no EPIPHAN_REGION: leave the region as it was.
         Write-Host 'No region given. Keeping the current one (North America unless you picked another before).'
     } else {
-        $url = switch ($region) { 'eu' { 'https://eu.epiphan.cloud/mcp' } 'au' { 'https://au.epiphan.cloud/mcp' } default { $DefaultUrl } }
+        $url = switch ($region) { 'na' { $DefaultUrl } 'eu' { 'https://eu.epiphan.cloud/mcp' } 'au' { 'https://au.epiphan.cloud/mcp' } default { $null } }
+        if (-not $url) { Problem "EPIPHAN_REGION is '$region'. Use na, eu or au."; return }
         # North America is the default in .mcp.json. Other regions get a private override for this
         # folder (stored in ~\.claude.json), so the shared files never change and updates keep working.
         Push-Location $Dir

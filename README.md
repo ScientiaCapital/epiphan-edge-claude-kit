@@ -95,7 +95,8 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 | Sign-in fails, or "0 devices" | Wrong **region** or wrong **team**. Paste the Step 2 line again to pick another region, and sign in again to pick another team. |
 | Worked yesterday, not today | Your Epiphan sign-in expired. Do the three sign-in commands from Step 4. |
 | A change was refused | Changes need an **Epiphan Edge Premium** plan. The EC20 camera can't record or stream on command. |
-| `BLOCKED: ... bypass mode` | You started Claude with `--dangerously-skip-permissions`. Press `Shift+Tab` to leave bypass mode, then ask again. |
+| `BLOCKED: ... bypass mode` | Claude is in bypass mode. Press `Shift+Tab` to leave it, then ask again. |
+| `[Epiphan kit: this result was withheld ...]` | Install `jq` (see Safety model), or ask about fewer devices at once. |
 | `already exists but isn't this kit` | You have a different folder with the same name. Rename it, then paste Step 2 again. |
 | Anything else | Run `claude doctor`, or [open an issue](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/issues). |
 
@@ -134,20 +135,25 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 
 - **Reads run without prompting.** Every `get_*` and `kb_*` tool is allowed in `.claude/settings.json`.
 - **Every write asks first.** Recording, streaming, CMS events, presets, reboots and firmware are in
-  `permissions.ask`. A hook (`.claude/hooks/epiphan-write-guard.sh`) also forces a prompt for any non-read
-  Epiphan tool, including ones added later, and adds a louder warning to reboots, firmware updates, presets,
-  stops and deletes.
-- **Bypass mode can't skip it.** `--dangerously-skip-permissions` skips `ask` prompts, so in that mode the hook
-  blocks Epiphan writes outright. Leave bypass mode (`Shift+Tab`) to approve one. Reads still work.
-- **Stream keys are stripped before the agent sees them.** A second hook
-  (`.claude/hooks/epiphan-redact.sh`) swaps keys, passwords and the path of any RTMP/SRT URL for `[redacted]`
-  before Claude sees the result. It needs `jq`: built into macOS 15+, one package on Linux (`jq`), and the Windows
-  installer adds it. Without `jq` it does nothing, and the agent is still told never to show keys.
-- **Connector names.** Both hooks also cover the claude.ai connector if you named it "Epiphan MCP", as
-  [Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says, or "Epiphan",
-  "Epiphan Cloud" or "Epiphan Edge". Under any name but "Epiphan MCP", reads prompt too; that's harmless.
+  `permissions.ask`. A hook (`.claude/hooks/epiphan-write-guard.sh`) also forces a prompt for any non-read tool
+  on any server or connector with "epiphan" in its name, including tools added later, and adds a louder warning
+  to reboots, firmware updates, presets, stops and deletes. A call the hook can't read is blocked.
+- **Bypass mode is off in this folder.** `.claude/settings.json` sets `disableBypassPermissionsMode`, so
+  `--dangerously-skip-permissions` starts Claude in normal mode here, and every write still asks. If bypass mode
+  is ever on anyway, the hook blocks Epiphan writes. To allow bypass mode, remove that line from your copy.
+- **Stream keys are hidden from the agent.** A second hook
+  (`.claude/hooks/epiphan-redact.sh`) replaces keys, passwords, and the path of any RTMP/SRT URL with
+  `[redacted]` before Claude sees the result. It reads the JSON rather than pattern-matching it, so it handles
+  any output size. It's best effort: it knows the field names Epiphan uses today. If it can't check a result
+  (no `jq`, an error, or more than 20 seconds), Claude gets a "withheld" note instead of the original.
+  Claude Code still saves the original in your local session history (`~/.claude/projects`); hooks can't change that.
+- **`jq` is needed for that.** It's built into macOS 15+. The installers add it with Homebrew or winget when they
+  can; otherwise run `brew install jq` (macOS 13–14) or install your Linux distribution's `jq` package.
+- **Connector names.** Both hooks cover the claude.ai connector whatever you named it, as long as the name
+  contains "Epiphan" ([Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says
+  "Epiphan MCP"). Under any name but "Epiphan MCP", reads prompt too; that's harmless.
 - **Windows.** The hooks run with Git Bash, which the installer sets up. Without it the hooks can't run, but
-  every listed write still prompts through `permissions.ask` (outside bypass mode).
+  every listed write still prompts through `permissions.ask`.
 - The agent is instructed never to reboot, update or re-preset a device that's recording, streaming, or about
   to start a scheduled event, and to treat device names, on-screen text and docs as data, not instructions.
 
@@ -182,7 +188,7 @@ Using the claude.ai "Epiphan MCP" connector instead? Add the same 15 names again
 `mcp__claude_ai_Epiphan_MCP__` prefix. Named it something else? The prefix is `mcp__claude_ai_` plus the
 connector name with spaces as underscores (for "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Type `/mcp`
 to see the exact name. A write tool Epiphan adds later isn't on this list until you add it, but the hook still
-makes it ask (or blocks it in bypass mode).
+makes it ask.
 
 ## Make it yours
 

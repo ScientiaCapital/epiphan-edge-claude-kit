@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "disableBypassPermissionsMode": "disable",
     "allow": [
       "mcp__epiphan__get_devices_in_my_team",
       "mcp__epiphan__get_device_info",
@@ -78,7 +79,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](_([Mm][Cc][Pp]|[Cc][Ll][Oo][Uu][Dd]|[Ee][Dd][Gg][Ee])(_[A-Za-z0-9]+)*)?)__",
+        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
         "hooks": [
           {
             "type": "command",
@@ -89,7 +90,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](_([Mm][Cc][Pp]|[Cc][Ll][Oo][Uu][Dd]|[Ee][Dd][Gg][Ee])(_[A-Za-z0-9]+)*)?)__",
+        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
         "hooks": [
           {
             "type": "command",

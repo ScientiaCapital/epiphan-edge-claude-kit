@@ -25,9 +25,10 @@ New checks are the best contribution: a command that answers a question you keep
 
 ## Testing
 
-- `bash tests/hook-test.sh` checks both hooks (write guard, bypass-mode block, stream-key redaction), the
-  `allow`/`ask` lists in `.claude/settings.json`, the README's read-only list, that every command is in the
-  README and CLAUDE.md tables, and that no command pre-approves a write. It needs `jq`.
+- `bash tests/hook-test.sh` checks both hooks (write guard, bypass-mode block, stream-key redaction including
+  fail-closed and a ~1 MB output), the matcher, the `allow`/`ask` lists and bypass setting in
+  `.claude/settings.json`, the README's read-only list, that every command is in the README and CLAUDE.md
+  tables, and that no command pre-approves a write. It needs `jq`.
 - `shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh` if you touch a script.
 - CI runs both on every PR, plus the installers on macOS, Linux and Windows.
 
