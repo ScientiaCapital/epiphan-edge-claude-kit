@@ -47,7 +47,13 @@
     }
     if (-not (Has git)) {
         Write-Warning 'Git for Windows is not installed. The kit still works, and every change still asks you first,'
-        Write-Warning 'but its extra safety hook needs Git. Install it from https://git-scm.com/downloads/win, then re-run this.'
+        Write-Warning 'but its extra safety hooks need Git. Install it from https://git-scm.com/downloads/win, then re-run this.'
+    }
+    # jq lets the kit hide stream keys from Claude (.claude\hooks\epiphan-redact.sh). Optional.
+    if (-not (Has jq) -and (Has winget)) {
+        Write-Host 'Installing jq with winget (used to hide stream keys from Claude)...'
+        winget install --id jqlang.jq -e --source winget --accept-package-agreements --accept-source-agreements *> $null
+        Update-Path
     }
 
     Say 'Step 2 of 5: Claude Code'
@@ -104,18 +110,23 @@
         $choice = Read-Host 'Type 1, 2 or 3 and press Enter [1]'
         $region = switch ($choice) { '2' { 'eu' } '3' { 'au' } default { 'na' } }
     }
-    $url = switch ($region) { 'eu' { 'https://eu.epiphan.cloud/mcp' } 'au' { 'https://au.epiphan.cloud/mcp' } default { $DefaultUrl } }
-    # North America is the default in .mcp.json. Other regions get a private override for this
-    # folder (stored in ~\.claude.json), so the shared files never change and updates keep working.
-    Push-Location $Dir
-    try {
-        claude mcp remove --scope local epiphan *> $null
-        if ($url -ne $DefaultUrl) {
-            claude mcp add --scope local --transport http epiphan $url *> $null
-            if ($LASTEXITCODE -ne 0) { Problem "Couldn't set the region. Paste the install line again."; return }
-        }
-    } finally { Pop-Location }
-    Write-Host "Using $url"
+    if (-not $region) {
+        # No one to ask (CI) and no EPIPHAN_REGION: leave the region as it was.
+        Write-Host 'No region given. Keeping the current one (North America unless you picked another before).'
+    } else {
+        $url = switch ($region) { 'eu' { 'https://eu.epiphan.cloud/mcp' } 'au' { 'https://au.epiphan.cloud/mcp' } default { $DefaultUrl } }
+        # North America is the default in .mcp.json. Other regions get a private override for this
+        # folder (stored in ~\.claude.json), so the shared files never change and updates keep working.
+        Push-Location $Dir
+        try {
+            claude mcp remove --scope local epiphan *> $null
+            if ($url -ne $DefaultUrl) {
+                claude mcp add --scope local --transport http epiphan $url *> $null
+                if ($LASTEXITCODE -ne 0) { Problem "Couldn't set the region. Paste the install line again."; return }
+            }
+        } finally { Pop-Location }
+        Write-Host "Using $url"
+    }
 
     Say 'Step 5 of 5: Open Claude Code'
     Write-Host @"

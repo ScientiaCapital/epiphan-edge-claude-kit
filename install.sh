@@ -71,21 +71,31 @@ if [ -z "$region" ] && interactive; then
   read -r choice </dev/tty || choice=""
   case "$choice" in 2) region=eu ;; 3) region=au ;; *) region=na ;; esac
 fi
-case "${region:-na}" in
-  eu) url="https://eu.epiphan.cloud/mcp" ;;
-  au) url="https://au.epiphan.cloud/mcp" ;;
-  *)  url="https://go.epiphan.cloud/mcp" ;;
-esac
-# North America is the default in .mcp.json. Other regions get a private override for this
-# folder (stored in ~/.claude.json), so the shared files never change and updates keep working.
-(
-  cd "$DIR" || exit 1  # set -e is off inside a subshell on the left of ||
-  claude mcp remove --scope local epiphan >/dev/null 2>&1 || true
-  if [ "$url" != "https://go.epiphan.cloud/mcp" ]; then
-    claude mcp add --scope local --transport http epiphan "$url" >/dev/null
-  fi
-) || fail "Couldn't set the region. Paste the install line again."
-echo "Using $url"
+if [ -z "$region" ]; then
+  # No keyboard to ask (run from a script) and no EPIPHAN_REGION: leave the region as it was.
+  # A new install has no override, so that's North America.
+  echo "No region given. Keeping the current one (North America unless you picked another before)."
+else
+  case "$region" in
+    eu) url="https://eu.epiphan.cloud/mcp" ;;
+    au) url="https://au.epiphan.cloud/mcp" ;;
+    *)  url="https://go.epiphan.cloud/mcp" ;;
+  esac
+  # North America is the default in .mcp.json. Other regions get a private override for this
+  # folder (stored in ~/.claude.json), so the shared files never change and updates keep working.
+  (
+    cd "$DIR" || exit 1  # set -e is off inside a subshell on the left of ||
+    claude mcp remove --scope local epiphan >/dev/null 2>&1 || true
+    if [ "$url" != "https://go.epiphan.cloud/mcp" ]; then
+      claude mcp add --scope local --transport http epiphan "$url" >/dev/null
+    fi
+  ) || fail "Couldn't set the region. Paste the install line again."
+  echo "Using $url"
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Tip: install jq so the kit can hide stream keys from Claude (Mac: brew install jq; Linux: your package manager)."
+fi
 
 say "Step 4 of 4: Open Claude Code"
 cat <<EOF
