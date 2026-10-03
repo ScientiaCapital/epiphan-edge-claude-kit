@@ -12,7 +12,8 @@ Requires an **Epiphan Edge Premium** plan, and a Pearl encoder: the EC20 can't s
 If the target is an EC20, say so and stop.
 
 1. **Endpoint**: `get_stream_endpoints`. If the user didn't name one, list them by **name only** and ask.
-   **Never print stream keys, passwords, or full RTMP/SRT URLs.** Mask them: `rtmp://host/app/••••`.
+   **Never print stream keys, passwords, or full RTMP/SRT URLs.** Show scheme and host only: `rtmp://host/••••`.
+   If the endpoint's `LockByDevice` is a *different* device, it's in use there: NO-GO, and name that device.
 2. **Pre-flight**: run the `/preflight` checks for this room with action "stream" (signal, audio, conflicts;
    storage isn't needed). If the verdict is **NO-GO**, stop and say why.
    For `stop`, skip pre-flight: only resolve the device and endpoint and confirm it's actually streaming.
@@ -21,7 +22,7 @@ If the target is an EC20, say so and stop.
 4. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
    If the server refuses the call, show its error word for word; a permission or plan error usually means the
    team isn't on Edge Premium.
-5. **Verify**: `get_stream_endpoint` and `get_recorder_status_for_devices` for this device, and confirm the
-   stream state changed. For `start`, one `get_channel_image` shows the picture going out is live. If the state
-   hasn't changed yet, re-read once more; don't loop. Report what you actually saw.
+5. **Verify**: `get_stream_endpoint` for this endpoint: `CurrentlyStreaming` should now be true (start) or false
+   (stop). For `start`, one `get_channel_image` shows the picture going out is live. If the state hasn't changed
+   yet, re-read once more; don't loop. Report what you actually saw.
 6. **Rollback**: print the one-line opposite command (e.g. `/golive <room> <endpoint> stop`).

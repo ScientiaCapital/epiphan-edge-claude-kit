@@ -78,11 +78,22 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee]piphan_([Mm][Cc][Pp]|[Cc]loud|[Ee]dge)(_[A-Za-z0-9]+)*)__",
+        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](_([Mm][Cc][Pp]|[Cc][Ll][Oo][Uu][Dd]|[Ee][Dd][Gg][Ee])(_[A-Za-z0-9]+)*)?)__",
         "hooks": [
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/epiphan-write-guard.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__(epiphan|claude_ai_([A-Za-z0-9]+_)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](_([Mm][Cc][Pp]|[Cc][Ll][Oo][Uu][Dd]|[Ee][Dd][Gg][Ee])(_[A-Za-z0-9]+)*)?)__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/epiphan-redact.sh\""
           }
         ]
       }

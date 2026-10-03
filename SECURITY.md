@@ -4,8 +4,8 @@ This kit can control live Epiphan devices (recording, streaming, reboots, firmwa
 
 ## Reporting a problem in this kit
 
-Examples: a write tool that runs without an approval prompt, the hook letting something through, a command
-that leaks stream keys.
+Examples: a write tool that runs without an approval prompt (or runs in bypass mode), a hook letting something
+through, a stream key that reaches the agent or the screen.
 
 Please **don't open a public issue**. Report it privately through GitHub:
 **Security → Report a vulnerability** on this repo
@@ -25,3 +25,13 @@ no secrets. The installer only writes:
 - for Europe or Australia, a per-folder `epiphan` server override in Claude Code's own config (`~/.claude.json`).
 
 `.claude/settings.local.json` (your personal overrides) is gitignored.
+
+## How writes and secrets are guarded
+
+- `permissions.ask` in `.claude/settings.json` prompts for every known write tool.
+- `.claude/hooks/epiphan-write-guard.sh` (PreToolUse) prompts for any non-read Epiphan tool, including future
+  ones, and **denies** them in bypass mode, where `ask` rules are skipped.
+- `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords and RTMP/SRT URL paths in tool
+  output with `[redacted]` before the model sees them (needs `jq`). This hides them from Claude only: the
+  Epiphan server still sends them, and Claude Code's own telemetry, if enabled, records the original output.
+- `tests/hook-test.sh` checks all of this in CI on macOS, Linux and Windows.
