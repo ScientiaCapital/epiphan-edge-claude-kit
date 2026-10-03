@@ -26,8 +26,12 @@ case "$names" in *$'\n'*) ;; *__get_channel_image\"|*__kb_*) exit 0 ;; esac
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
 printf '%s' "$input" | grep -qiE 'key|pass|secret|token|auth|:\\*/' || exit 0
 
-command -v jq >/dev/null 2>&1 \
-  || withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
+if ! command -v jq >/dev/null 2>&1; then
+  # Without jq, withhold only what really looks like a secret: a field named like one ("StreamingKey": ...)
+  # or a streaming URL with a path. Words like "Keynote" in an event title don't count.
+  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|password|passphrase|secret|token)\\*"[[:space:]]*:|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)' || exit 0
+  withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
+fi
 
 budget=${EPIPHAN_REDACT_SECONDS:-20}
 tmp=$(mktemp) || withhold "couldn't be checked for stream keys (no temp file)"
