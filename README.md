@@ -135,23 +135,25 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 
 - **Reads run without prompting.** Every `get_*` and `kb_*` tool is allowed in `.claude/settings.json`.
 - **Every write asks first.** Recording, streaming, CMS events, presets, reboots and firmware are in
-  `permissions.ask`. A hook (`.claude/hooks/epiphan-write-guard.sh`) also forces a prompt for any non-read tool
-  on any server or connector with "epiphan" in its name, including tools added later, and adds a louder warning
-  to reboots, firmware updates, presets, stops and deletes. A call the hook can't read is blocked.
+  `permissions.ask`. A hook (`.claude/hooks/epiphan-write-guard.sh`) also forces a prompt for every Epiphan Edge
+  write tool under any connector name and for any new non-read tool on the Edge server itself, and adds a
+  louder warning to reboots, firmware updates, presets, stops and deletes. A call the hook can't read is blocked.
 - **Bypass mode is off in this folder.** `.claude/settings.json` sets `disableBypassPermissionsMode`, so
   `--dangerously-skip-permissions` starts Claude in normal mode here, and every write still asks. If bypass mode
   is ever on anyway, the hook blocks Epiphan writes. To allow bypass mode, remove that line from your copy.
 - **Stream keys are hidden from the agent.** A second hook
   (`.claude/hooks/epiphan-redact.sh`) replaces keys, passwords, and the path of any RTMP/SRT URL with
-  `[redacted]` before Claude sees the result. It reads the JSON rather than pattern-matching it, so it handles
-  any output size. It's best effort: it knows the field names Epiphan uses today. If it can't check a result
-  (no `jq`, an error, or more than 20 seconds), Claude gets a "withheld" note instead of the original.
+  `[redacted]` before Claude sees the result. It reads the JSON rather than pattern-matching it: a few MB of
+  device data takes seconds. It's best effort: it knows the field names Epiphan uses today. If it can't check a
+  result (no `jq`, an error, or more than 20 seconds), or one text value is over 200 KB, Claude gets a
+  "withheld" note in its place.
   Claude Code still saves the original in your local session history (`~/.claude/projects`); hooks can't change that.
 - **`jq` is needed for that.** It's built into macOS 15+. The installers add it with Homebrew or winget when they
   can; otherwise run `brew install jq` (macOS 13–14) or install your Linux distribution's `jq` package.
-- **Connector names.** Both hooks cover the claude.ai connector whatever you named it, as long as the name
-  contains "Epiphan" ([Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says
-  "Epiphan MCP"). Under any name but "Epiphan MCP", reads prompt too; that's harmless.
+- **Connector names.** Both hooks cover Epiphan Edge's tools under any connector name that contains "Epiphan"
+  ([Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says "Epiphan MCP").
+  Under a name other than "Epiphan MCP", reads also prompt once, since only that name is pre-allowed. Other
+  Epiphan connectors you may have (docs, CRM, ...) are left alone.
 - **Windows.** The hooks run with Git Bash, which the installer sets up. Without it the hooks can't run, but
   every listed write still prompts through `permissions.ask`.
 - The agent is instructed never to reboot, update or re-preset a device that's recording, streaming, or about
