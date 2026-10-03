@@ -61,7 +61,7 @@ else
 fi
 
 say "Step 3 of 4: Your Epiphan region"
-region=$(printf '%s' "${EPIPHAN_REGION:-}" | tr '[:upper:]' '[:lower:]')
+region="${EPIPHAN_REGION:-}"
 if [ -z "$region" ] && interactive; then
   echo "Which Epiphan Cloud region is your account on? (Not sure? It's the one you sign in to.)"
   echo "  1) North America  (go.epiphan.cloud)"
@@ -76,11 +76,11 @@ if [ -z "$region" ]; then
   # A new install has no override, so that's North America.
   echo "No region given. Keeping the current one (North America unless you picked another before)."
 else
-  case "$region" in
-    na) url="https://go.epiphan.cloud/mcp" ;;
-    eu) url="https://eu.epiphan.cloud/mcp" ;;
-    au) url="https://au.epiphan.cloud/mcp" ;;
-    *)  fail "EPIPHAN_REGION is '$region'. Use na, eu or au." ;;
+  case "$region" in  # any letter case; no external tools (macOS bash 3.2, minimal PATH)
+    [Nn][Aa]) url="https://go.epiphan.cloud/mcp" ;;
+    [Ee][Uu]) url="https://eu.epiphan.cloud/mcp" ;;
+    [Aa][Uu]) url="https://au.epiphan.cloud/mcp" ;;
+    *)        fail "EPIPHAN_REGION is '$region'. Use na, eu or au." ;;
   esac
   # North America is the default in .mcp.json. Other regions get a private override for this
   # folder (stored in ~/.claude.json), so the shared files never change and updates keep working.
