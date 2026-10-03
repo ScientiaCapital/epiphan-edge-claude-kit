@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# PreToolUse guard for the Epiphan MCP server and claude.ai connectors to it (any server or connector
-# with "epiphan" in its name; see the matcher in .claude/settings.json).
-# Reads (get_*, kb_*) pass straight through. Every other tool is a write and always
-# needs your approval, including write tools the server adds later. Disruptive ones
-# (reboot, firmware, stop, delete, presets) get a louder warning in the approval prompt.
+# PreToolUse guard for the Epiphan MCP server and claude.ai connectors to it. The matcher in
+# .claude/settings.json sends every server with "epiphan" in its name here; this decides which calls matter:
+#   - the Epiphan Edge tools this kit knows: reads pass, writes need your approval;
+#   - any other tool on the device server itself (the kit's "epiphan" server, or a connector named like
+#     "Epiphan MCP" / "Epiphan Cloud" / "Epiphan Edge"): reads (get_*, kb_*) pass, the rest needs approval,
+#     so write tools the server adds later are covered;
+#   - other Epiphan services (a connector for docs, CRM, ...) are left to Claude Code's normal permissions.
+# Disruptive writes (reboot, firmware, stop, delete, presets) get a louder warning in the approval prompt.
 # In bypass mode Claude Code skips "ask", so writes are denied there instead ("deny" still applies).
 # Fails closed: a call it can't read is denied, never waved through.
 # jq is used when present; otherwise grep, which works on a stock Mac and in Git Bash on Windows.
+# Keep these lists in step with .claude/settings.json and epiphan-redact.sh (tests/hook-test.sh checks).
+READS=" get_devices_in_my_team get_device_info get_device_sources get_system_status_for_devices get_recorder_status_for_devices get_storage_status_for_devices get_channel_settings get_channel_image get_channel_audio_levels get_stream_endpoint get_stream_endpoints get_team_presets get_cms_events_for_device get_cms_events_for_devices get_current_or_next_cms_event_for_device get_current_or_next_cms_events_for_devices get_cms_names_for_devices get_devices_by_cms kb_search kb_fetch "
+WRITES=" batch_recording start_stream_endpoint stop_stream_endpoint create_cms_event update_cms_event delete_cms_event cms_event_action confirm_cms_event_on_device create_stream_endpoint update_stream_endpoint delete_stream_endpoint apply_team_preset switch_device_to_cms batch_reboot batch_firmware_update "
+DEVICE_SERVER='^(epiphan([-_].*)?|claude_ai_(.*_)?epiphan([-_]?(mcp|cloud|edge)([-_].*)?)?|plugin_.*epiphan.*)$'
 input=$(cat)
+unsure=""
 
 if command -v jq >/dev/null 2>&1 && parsed=$(printf '%s' "$input" | jq -r '[.tool_name // "", .permission_mode // ""] | join("\n")' 2>/dev/null); then
   name=${parsed%%$'\n'*}
@@ -16,12 +24,13 @@ else
   field() { printf '%s' "$input" | grep -o "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -1 | sed 's/.*"\([^"]*\)"$/\1/'; }
   name=$(field tool_name)
   mode=$(field permission_mode)
-  # Without a real parser, don't let a nested copy of a field decide: a second "tool_name" means it's
-  # not provably a read, and bypass mode anywhere in the input counts as bypass mode.
-  if [ "$(printf '%s' "$input" | grep -o '"tool_name"' | wc -l)" -gt 1 ]; then name=unparseable__unknown; fi
+  # Without a real parser, don't let a nested copy of a field decide: a second "tool_name" means the call
+  # can't be trusted to be a read, and bypass mode anywhere in the input counts as bypass mode.
+  if [ "$(printf '%s' "$input" | grep -o '"tool_name"' | wc -l)" -gt 1 ]; then unsure=1; fi
   if printf '%s' "$input" | grep -q '"permission_mode"[[:space:]]*:[[:space:]]*"bypassPermissions"'; then mode=bypassPermissions; fi
 fi
-tool=${name##*__}                    # strip the server prefix (mcp__epiphan__, mcp__claude_ai_Epiphan_MCP__, ...)
+server=${name%__*}; server=${server#mcp__}
+tool=${name##*__}                                   # strip the server prefix (mcp__epiphan__, mcp__claude_ai_Epiphan_MCP__, ...)
 tool=$(printf '%s' "$tool" | tr -cd 'A-Za-z0-9_-')  # it goes into JSON below; keep it to safe characters
 
 decide() { # decide <ask|deny> <reason>
@@ -32,18 +41,24 @@ write() {
   if [ "$mode" = bypassPermissions ]; then
     decide deny "BLOCKED: '${tool:-unknown}' changes Epiphan devices, and bypass mode would run it without asking. Leave bypass mode (Shift+Tab) and try again to approve it yourself."
   fi
-  decide ask "$1"
+  case "$tool" in
+    batch_reboot|batch_firmware_update)
+      decide ask "DISRUPTIVE: '$tool' takes devices offline and interrupts any live recording or stream. Check the device list in the call." ;;
+    stop_*|delete_*)
+      decide ask "DISRUPTIVE: '$tool' stops or removes something that may be live or scheduled. Check the target before approving." ;;
+    apply_team_preset)
+      decide ask "DISRUPTIVE: 'apply_team_preset' overwrites device settings. Presets with network or system sections can cut the device off or reset its password." ;;
+    *)
+      decide ask "WRITE: '$tool' changes device or team state in Epiphan Cloud." ;;
+  esac
 }
 
 [ -n "$tool" ] || decide deny "BLOCKED: couldn't read this Epiphan tool call, so it isn't allowed to run. Try again."
-case "$tool" in
-  get_*|kb_*) exit 0 ;;
-  batch_reboot|batch_firmware_update)
-    write "DISRUPTIVE: '$tool' takes devices offline and interrupts any live recording or stream. Check the device list in the call." ;;
-  stop_*|delete_*)
-    write "DISRUPTIVE: '$tool' stops or removes something that may be live or scheduled. Check the target before approving." ;;
-  apply_team_preset)
-    write "DISRUPTIVE: 'apply_team_preset' overwrites device settings. Presets with network or system sections can cut the device off or reset its password." ;;
-  *)
-    write "WRITE: '$tool' changes device or team state in Epiphan Cloud." ;;
-esac
+[ -n "$unsure" ] && write
+case "$READS" in *" $tool "*) exit 0 ;; esac
+case "$WRITES" in *" $tool "*) write ;; esac
+if printf '%s' "$server" | grep -qiE "$DEVICE_SERVER"; then
+  case "$tool" in get_*|kb_*) exit 0 ;; esac
+  write
+fi
+exit 0  # another Epiphan service (docs, CRM, ...): Claude Code's normal permissions apply

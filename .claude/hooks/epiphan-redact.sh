@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # PostToolUse redactor for the Epiphan MCP server and claude.ai connectors to it (same matcher as the
-# write guard). Some read tools return stream keys in plain text (get_stream_endpoints does). This
-# rewrites the tool's output before Claude sees it:
+# write guard; like the guard, it acts on the Epiphan Edge tools it knows and on the device server itself,
+# and leaves other Epiphan services alone). Some read tools return stream keys in plain text
+# (get_stream_endpoints does). This rewrites the tool's output before Claude sees it:
 #   - fields named like a secret (StreamingKey, stream_key, password, passphrase, token, ...) and
 #     {"id"/"name"/"key": "<secret name>", "value": ...} pairs get the value "[redacted]";
 #   - streaming URLs (rtmp*, srt, rtsp, rist) keep only scheme + host; http(s) URLs lose user:password@
 #     and their ?query;
 #   - "stream key: abc" style text is masked too.
-# JSON is parsed, not pattern-matched, including JSON inside strings, so it's linear in the output size.
+# JSON is parsed, not pattern-matched, including JSON inside strings. A single text value over 200 KB that
+# looks secret-bearing is withheld rather than scanned; whole results that take over 20 s are withheld.
 # Best effort: it knows the field names Epiphan uses today, not every way a secret could be written.
 # Fails closed: if output looks like it holds a secret but can't be redacted (no jq, an error, or
 # too slow), Claude gets a short "withheld" note instead of the original.
@@ -18,18 +20,36 @@ withhold() {
   exit 0
 }
 
-# Docs pages and preview images never hold your keys. Skip them.
-# (Only when "tool_name" appears once, so a copy nested in the tool's input can't fake it.)
+# Keep these lists in step with .claude/settings.json and epiphan-write-guard.sh (tests/hook-test.sh checks).
+KNOWN=" get_devices_in_my_team get_device_info get_device_sources get_system_status_for_devices get_recorder_status_for_devices get_storage_status_for_devices get_channel_settings get_channel_image get_channel_audio_levels get_stream_endpoint get_stream_endpoints get_team_presets get_cms_events_for_device get_cms_events_for_devices get_current_or_next_cms_event_for_device get_current_or_next_cms_events_for_devices get_cms_names_for_devices get_devices_by_cms kb_search kb_fetch batch_recording start_stream_endpoint stop_stream_endpoint create_cms_event update_cms_event delete_cms_event cms_event_action confirm_cms_event_on_device create_stream_endpoint update_stream_endpoint delete_stream_endpoint apply_team_preset switch_device_to_cms batch_reboot batch_firmware_update "
+DEVICE_SERVER='^(epiphan([-_].*)?|claude_ai_(.*_)?epiphan([-_]?(mcp|cloud|edge)([-_].*)?)?|plugin_.*epiphan.*)$'
+
+# Which tool is this? Only trusted when "tool_name" appears once, so a copy nested in the tool's input
+# can't fake it; otherwise nothing is skipped.
 names=$(printf '%s' "$input" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"')
-case "$names" in *$'\n'*) ;; *__get_channel_image\"|*__kb_*) exit 0 ;; esac
+case "$names" in
+  *$'\n'*) ;;
+  ?*)
+    name=${names%\"}; name=${name##*\"}
+    server=${name%__*}; server=${server#mcp__}; tool=${name##*__}
+    case "$tool" in get_channel_image|kb_*) exit 0 ;; esac   # preview images and docs pages never hold your keys
+    case "$KNOWN" in
+      *" $tool "*) ;;
+      *) printf '%s' "$server" | grep -qiE "$DEVICE_SERVER" || exit 0 ;;  # another Epiphan service: not ours to touch
+    esac ;;
+esac
 
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
-printf '%s' "$input" | grep -qiE 'key|pass|secret|token|auth|:\\*/' || exit 0
+# (grep exits 1 for "no match"; anything else, like an error, goes on to the full check.)
+printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|:\\*/'
+[ $? -eq 1 ] && exit 0
 
 if ! command -v jq >/dev/null 2>&1; then
-  # Without jq, withhold only what really looks like a secret: a field named like one ("StreamingKey": ...)
-  # or a streaming URL with a path. Words like "Keynote" in an event title don't count.
-  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|password|passphrase|secret|token)\\*"[[:space:]]*:|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)' || exit 0
+  # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "pwd": ...),
+  # "stream key: ..." or "Bearer ..." text, a streaming URL with a path, or any URL with user:password@ or a
+  # ?query. Words like "Keynote" in an event title don't count.
+  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream[ _-]?key|password|passphrase|token)[[:space:]]*[:=]|bearer[[:space:]]|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*\?'
+  [ $? -eq 1 ] && exit 0
   withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
 fi
 
@@ -45,7 +65,9 @@ trap 'rm -f "$tmp"' EXIT
     and (test("page|cursor"; "i") | not);
   def mask: if type == "boolean" or type == "null" or . == "" then . else "[redacted]" end;
   def scrub_text:
-    if test("://|:\\\\/\\\\/|key|pass|secret|token|auth|stream"; "i") | not then . else
+    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|stream"; "i") | not then .
+    elif length > 200000 then "[Epiphan kit: a long text value was withheld because it was too long to check for stream keys]"
+    else
       gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist)://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<r>[/?#][^\\s\"'"'"'<>()\\[\\],]*)?";
            "\(.p)\(.h)\(if .r then "/[redacted]" else "" end)"; "i")
       | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist|https?):\\\\/\\\\/)(?<h>[^\\\\\\s\"'"'"'<>]+)(?<r>\\\\/[^\\s\"'"'"'<>]*)";
@@ -58,8 +80,9 @@ trap 'rm -f "$tmp"' EXIT
   def redact:
     if type == "object" then
       (if has("value") and ([.id, .name, .key] | any(secret_name)) then .value |= mask else . end)
+      | has("value") as $pair
       | with_entries(
-          if (.key | secret_name) and ((.value | type) != "string" or (.value | secret_name | not)) then .value |= mask
+          if (.key | secret_name) and (($pair | not) or (.value | type) != "string" or (.value | secret_name | not)) then .value |= mask
           else .value |= redact end)
     elif type == "array" then map(redact)
     elif type == "string" then
@@ -71,7 +94,7 @@ trap 'rm -f "$tmp"' EXIT
       else scrub_text end
     else . end;
   (.tool_name // "") as $name
-  | if ($name | test("__(get_channel_image|kb_[a-z_]+)$")) then empty else . end
+  | if ($name | split("__") | last | test("^(get_channel_image|kb_.*)$")) then empty else . end
   | .tool_response as $orig
   | ($orig | redact) as $new
   | if $new == $orig then empty

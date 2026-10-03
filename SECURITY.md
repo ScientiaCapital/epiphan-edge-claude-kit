@@ -30,8 +30,9 @@ no secrets. The installer only writes:
 
 - `permissions.ask` in `.claude/settings.json` prompts for every known write tool, and
   `permissions.disableBypassPermissionsMode` keeps bypass mode (which skips prompts) off in this folder.
-- `.claude/hooks/epiphan-write-guard.sh` (PreToolUse) prompts for any non-read tool on any Epiphan-named server
-  or connector, including future ones. It denies writes in bypass mode and denies calls it can't read.
+- `.claude/hooks/epiphan-write-guard.sh` (PreToolUse) prompts for every Epiphan Edge write tool under any
+  Epiphan-named connector, and for any new non-read tool on the Edge server itself. It denies writes in bypass
+  mode and denies calls it can't read. Other Epiphan services' tools are left to normal permissions.
 - `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords and RTMP/SRT URL paths in tool
   output with `[redacted]` before the model sees them, and withholds results it can't check (needs `jq`).
 - `tests/hook-test.sh` checks all of this in CI on macOS, Linux and Windows.
@@ -43,4 +44,8 @@ Known limits, so you can judge them yourself:
 - Error output from a failed tool call isn't redacted (it normally echoes only what Claude sent).
 - Tools are classed as reads by name (`get_*`, `kb_*`). A future write tool named like a read would not prompt.
 - If hooks are disabled (`disableAllHooks`) or can't run (Windows without Git Bash), only `permissions.ask` and
-  the bypass-mode setting remain, which still cover every write tool known today.
+  the bypass-mode setting remain. The `ask` rules name every write tool known today, for the `epiphan` server
+  and a connector named "Epiphan MCP". Under another connector name, writes still prompt in the default mode
+  (they aren't pre-allowed), but auto mode may approve them.
+- Redaction withholds a single text value over 200 KB, and a whole result that takes over 20 s, instead of
+  checking it.
