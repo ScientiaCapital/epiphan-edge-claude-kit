@@ -200,7 +200,7 @@ for new checks are welcome. Security issues: see [SECURITY.md](SECURITY.md).
 
 ## Thanks
 
-Huge thanks to **Vadim Kalinskiy** and the **Epiphan engineering team** for building the Epiphan MCP server. Everything
+Huge thanks to the **Epiphan engineering team** for building the Epiphan MCP server. Everything
 here sits on the tools they built, and it's only going to keep getting better.
 
 ## License
