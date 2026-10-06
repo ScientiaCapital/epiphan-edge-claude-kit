@@ -42,7 +42,7 @@ Known limits, so you can judge them yourself:
   original result in your local session history (`~/.claude/projects`) and, if you enabled it, in telemetry.
 - It recognises the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
   with a key column, credentialed or ingest URLs). A secret written some other way may not be caught.
-  Epiphan's `StreamID` (a UUID that `/golive` needs) is kept; any other stream ID is masked.
+  Epiphan's `StreamID` (a UUID that `/stream-room` needs) is kept; any other stream ID is masked.
 - Error output from a failed tool call isn't redacted (it normally echoes only what Claude sent).
 - Tools are classed as reads by name (`get_*`, `kb_*`). A future write tool named like a read would not prompt.
 - If hooks are disabled (`disableAllHooks`) or can't run (Windows without Git Bash), only `permissions.ask` and

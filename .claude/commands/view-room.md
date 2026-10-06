@@ -1,10 +1,10 @@
 ---
-description: "Visually verify a room: live preview image + audio levels"
+description: "See what a room's camera shows and hear if the mic is live. Read only"
 argument-hint: "<room/device name> [channel name]"
 allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_device_sources
 ---
 
-# /look: Eyes on the Room
+# /view-room: See and hear a room
 
 Target: `$ARGUMENTS`. If empty, list the online devices and ask which room.
 

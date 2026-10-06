@@ -139,7 +139,7 @@ When Claude Code opens:
   1. First time only: sign in to your Claude account in the browser.
   2. "Do you trust the files in this folder?"  ->  Yes
   3. "New MCP server found: epiphan"           ->  choose to use it
-  4. Type  /start  and press Enter. It walks you through signing in to Epiphan Edge.
+  4. Type  /connect-epiphan  and press Enter. It signs you in to Epiphan Edge without leaving Claude.
 
 Next time, open PowerShell and type:
   cd "$Dir"; claude

@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.1.0 (2026-10-06)
+
+From first-run feedback: easier sign-in, commands that say what they do, and a calmer tone.
+
+- **Sign in without leaving Claude.** `/connect-epiphan` now walks you through `/mcp` → **epiphan** →
+  **Authenticate**. No more `/exit`, `claude mcp login epiphan` and relaunch (kept only as a fallback).
+- **Commands renamed** so the name and the `/` menu say what each one does, and whether it changes anything:
+  `/start` → `/connect-epiphan`, `/fleet` → `/device-overview`, `/triage` → `/find-problems`,
+  `/schedule` → `/upcoming-recordings`, `/look` → `/view-room`, `/ask-docs` → `/ask-epiphan-docs`,
+  `/preflight` → `/check-room`, `/record` → `/record-room`, `/golive` → `/stream-room`, `/fix` → `/fix-problem`.
+  This also stops the kit's `/schedule` clashing with Claude Code's built-in `/schedule`.
+- **Priorities in words:** Fix first / Fix soon / When convenient, instead of P1/P2/P3. Room checks say
+  Ready / Ready, with notes / Not ready, instead of GO / NO-GO.
+- **Calmer tone, and storage is a note, not a problem.** Pearls on a CMS record locally and upload after each
+  class, so low or no local space no longer appears as a problem, "at risk" event or Not ready verdict. It's
+  one FYI line, and is raised only when a single recording is longer than the space left. The new Tone section
+  in CLAUDE.md applies this to plain-English questions too.
+
 ## v1.0.2 (2026-10-03)
 
 Closes the last four redaction gaps from the devil's-advocate test set (now 0 of 36 leak).

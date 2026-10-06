@@ -8,11 +8,12 @@ to your **Epiphan Edge** account, so you can ask *"what's broken?"*, see what a 
 start a recording, with your OK before anything changes.
 
 ```
-> /triage
-#  Priority  Device        Group     Issue               Evidence                 Suggested fix
-1  P1        Main Hall     Campus A  disk_space_error    2.1 GB free of 500 GB    Offload recordings before the next event
-2  P2        Lecture 204   Campus A  channel_no_signal   "Camera 2" (SDI) dark    Check the SDI cable at the rack
-3  P2        Auditorium    Campus B  firmware behind     4.x.5, family on 4.x.6   /fix 3
+> /find-problems
+#  Priority     Device       Group     What's going on            How we know                Suggested fix
+1  Fix first    Lecture 204  Campus A  No picture from Camera 2   Next class at 2 p.m.       Check the SDI cable at the rack
+2  Fix soon     Auditorium   Campus B  Firmware one version back  4.x.5, others on 4.x.6     /fix-problem 2
+
+FYI: 2 Pearls have little local space left. That's normal when recordings upload to your CMS.
 ```
 *(example output; yours shows your own rooms)*
 
@@ -25,7 +26,7 @@ start a recording, with your OK before anything changes.
 - A **Mac** (macOS 13+; on 13–14 the installer adds `jq` if you have Homebrew), **Windows** 10/11, or **Linux** computer
 - A **paid Epiphan Edge account** with at least one Epiphan device (Pearl-2, Pearl Mini, Pearl Nano,
   Pearl Nexus, EC20…) paired to it. Looking and checking works on Edge; the commands that change things
-  (`/record`, `/golive`, `/fix`) need **Epiphan Edge Premium**.
+  (`/record-room`, `/stream-room`, `/fix-problem`) need **Epiphan Edge Premium**.
 - A **Claude** account on a **Pro, Max, Team or Enterprise** plan. The free plan doesn't include Claude Code.
 - **Claude Code 2.1.196 or newer.** The installer installs or updates it; `claude update` does it by hand.
 
@@ -63,17 +64,17 @@ sign in to Epiphan Cloud on; if you're not sure, it's North America. You can rea
 2. **"Do you trust the files in this folder?"** Choose **Yes**.
 3. **"New MCP server found: epiphan"** Choose to use it. This is the connection to Epiphan Edge.
 
-### Step 4: Type `/start`
+### Step 4: Type `/connect-epiphan`
 
-Type `/start` and press `Enter`. Claude checks the connection. The first time, it tells you to sign in to
-Epiphan, which takes three short commands:
+Type `/connect-epiphan` and press `Enter`. Claude checks the connection. The first time, it asks you to sign
+in to Epiphan. You don't need to leave Claude:
 
-1. `/exit` (closes Claude for a moment)
-2. `claude mcp login epiphan`: a browser opens. Sign in with your **Epiphan Edge** account and **pick the
-   team** you want Claude to see.
-3. `claude`, then `/start` again
+1. Type `/mcp` and press `Enter`.
+2. Pick **epiphan** with the arrow keys, press `Enter`, then choose **Authenticate**.
+3. A browser opens. Sign in with your **Epiphan Edge** account and **pick the team** you want Claude to see.
+4. Back in the terminal, type `/connect-epiphan` again.
 
-When it says **"You're connected!"**, type `/fleet`.
+When it says **"You're connected!"**, type `/device-overview`.
 
 ### Next time
 
@@ -90,10 +91,11 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 |---|---|
 | `command not found: claude` or `'claude' is not recognized` | Close the terminal, open a new one, and paste the Step 2 line again. |
 | `'irm' is not recognized` | You're in Command Prompt, not PowerShell. Open **PowerShell** (Step 1). |
-| `/start` says no Epiphan server | Type `/mcp`, choose **epiphan**, approve it, then `/start` again. |
-| `FORBIDDEN` or "not signed in" | Do the three sign-in commands from Step 4. |
-| Sign-in fails, or "0 devices" | Wrong **region** or wrong **team**. Paste the Step 2 line again to pick another region, and sign in again to pick another team. |
-| Worked yesterday, not today | Your Epiphan sign-in expired. Do the three sign-in commands from Step 4. |
+| `/connect-epiphan` says no Epiphan server | Type `/mcp`, choose **epiphan**, approve it, then `/connect-epiphan` again. |
+| `FORBIDDEN` or "not signed in" | Type `/mcp`, choose **epiphan**, then **Authenticate** (Step 4). No **Authenticate** option? Type `/exit`, run `claude mcp login epiphan`, then `claude`. |
+| Sign-in fails, or "0 devices" | Wrong **region** or wrong **team**. Paste the Step 2 line again to pick another region. To pick another team, type `/mcp`, choose **epiphan**, then **Re-authenticate**. |
+| Worked yesterday, not today | Your Epiphan sign-in expired. Type `/mcp`, choose **epiphan**, then **Re-authenticate**. |
+| `/start`, `/triage` or another old command does nothing | Commands were renamed in v1.1.0 to say what they do. `/start` is now `/connect-epiphan`, `/triage` is `/find-problems`. Type `/` to see them all, or see [CHANGELOG.md](CHANGELOG.md). |
 | A change was refused | Changes need an **Epiphan Edge Premium** plan. The EC20 camera can't record or stream on command. |
 | `BLOCKED: ... bypass mode` | Claude is in bypass mode. Press `Shift+Tab` to leave it, then ask again. |
 | `[Epiphan kit: this result was withheld ...]` | Install `jq` (see Safety model), or ask about fewer devices at once. |
@@ -106,16 +108,16 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 
 | Command | What it does | Changes anything? |
 |---|---|---|
-| `/start` | First run: connects your Edge account and gives a quick tour | No |
-| `/fleet [group]` | Online/offline by group and model, firmware spread | No |
-| `/triage [group]` | Warnings sweep → numbered, prioritized fix list | No |
-| `/schedule [group]` | Upcoming Panopto/Kaltura/Echo360/Opencast/Edge events, and which are at risk | No |
-| `/look <room>` | Grabs the live preview and audio levels and tells you what's on screen | No |
-| `/ask-docs <question>` | Answers from the official Epiphan knowledge base, with the page cited | No |
-| `/preflight <room>` | Go/no-go checklist: signal, audio, disk hours left, schedule conflicts | No |
-| `/record <room> [start\|stop]` | Pre-flight → your approval → record → verify | **Yes** (Edge Premium) |
-| `/golive <room> [endpoint] [start\|stop]` | Pre-flight → your approval → stream → verify | **Yes** (Edge Premium) |
-| `/fix <#>` | Takes an item from `/triage`, plans the fix, applies it with approval, re-checks | **Yes** (Edge Premium) |
+| `/connect-epiphan` | First time: signs you in to Epiphan Edge and gives a quick tour | No |
+| `/device-overview [group]` | Which devices are online, by group and model, and their firmware | No |
+| `/find-problems [group]` | What needs attention, in plain words, with what to fix first | No |
+| `/upcoming-recordings [group]` | What's recording or streaming next (Panopto, Kaltura, Echo360, Opencast, Edge), and anything that could stop it | No |
+| `/view-room <room>` | Grabs the live preview and audio levels and tells you what's on screen | No |
+| `/ask-epiphan-docs <question>` | Answers from the official Epiphan knowledge base, with the page cited | No |
+| `/check-room <room>` | Is a room ready to record or stream: picture, sound, schedule | No |
+| `/record-room <room> [start\|stop]` | Checks the room → your approval → records → confirms | **Yes** (Edge Premium) |
+| `/stream-room <room> [endpoint] [start\|stop]` | Checks the room → your approval → streams → confirms | **Yes** (Edge Premium) |
+| `/fix-problem <#>` | Takes an item from `/find-problems`, plans the fix, applies it with approval, re-checks | **Yes** (Edge Premium) |
 
 Or just ask: *"Which rooms can't record tomorrow morning?"*
 
@@ -128,8 +130,10 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 - Epiphan's official guides: [Connect an AI assistant using MCP](https://kb.epiphan.com/cloud-edge/connect-an-ai-assistant-to-epiphan-cloud-using-mcp),
   [Epiphan MCP capabilities](https://kb.epiphan.com/cloud-edge/epiphan-mcp-capabilities),
   [Troubleshooting](https://kb.epiphan.com/cloud-edge/verify-and-troubleshoot-the-epiphan-mcp-connection).
-- `.claude/commands/*.md` are the slash commands: plain-English instructions, no code.
-- `CLAUDE.md` holds the rules the agent follows in this folder.
+- `.claude/commands/*.md` are the slash commands: plain-English instructions, no code. Each one's `/` menu
+  description says whether it's **Read only** or **Changes your device (asks you first)**.
+- `CLAUDE.md` holds the rules the agent follows in this folder, including its tone: calm, plain words, and
+  local storage treated as routine, since Pearls upload recordings to your CMS after each class.
 
 ## Safety model
 

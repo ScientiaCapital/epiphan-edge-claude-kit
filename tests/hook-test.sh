@@ -128,7 +128,7 @@ guard_known=$(grep -E '^(READS|WRITES)=' "$hook" | cut -d'"' -f2 | tr ' ' '\n' |
 redact_known=$(grep -E '^KNOWN=' "$redact" | cut -d'"' -f2 | tr ' ' '\n' | grep . | sort | tr '\n' ' ')
 if [ "$known" = "$guard_known" ] && [ "$known" = "$redact_known" ]; then ok "hooks know the same 35 tools as settings.json"
 else bad "tool lists differ between settings.json and the hooks"; fi
-# Fields the commands need must survive: /golive uses StreamID, names and lock state.
+# Fields the commands need must survive: /stream-room uses StreamID, names and lock state.
 out=$(jq -cn '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:({streams:[{StreamID:"0be33e88-d0f3-4421-8f26-f06c9092183c",Name:"YouTube",LockByDevice:"190x",CurrentlyStreaming:false,RTMP:{StreamingKey:"FAKE",URL:"rtmp://a.example/live2"}}]}|tojson)}]}' | bash "$redact")
 if printf '%s' "$out" | jq -e '.hookSpecificOutput.updatedToolOutput[0].text | fromjson | .streams[0] | .StreamID == "0be33e88-d0f3-4421-8f26-f06c9092183c" and .Name == "YouTube" and .LockByDevice == "190x" and .RTMP.URL == "rtmp://a.example/[redacted]"' >/dev/null 2>&1; then
   ok "keeps StreamID, Name and LockByDevice"

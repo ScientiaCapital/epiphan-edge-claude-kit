@@ -100,7 +100,7 @@ jobs:
           echo "my notes" > "$EPIPHAN_KIT_DIR/my-notes.txt"
           PATH="$bin" bash install.sh
           test -f "$EPIPHAN_KIT_DIR/.epiphan-kit"
-          test -f "$EPIPHAN_KIT_DIR/.claude/commands/start.md"
+          test -f "$EPIPHAN_KIT_DIR/.claude/commands/connect-epiphan.md"
           grep -q "my notes" "$EPIPHAN_KIT_DIR/my-notes.txt"
           cd "$EPIPHAN_KIT_DIR" && "$HOME/.local/bin/claude" mcp get epiphan | tee /dev/stderr | grep -q 'au.epiphan.cloud/mcp'
 
