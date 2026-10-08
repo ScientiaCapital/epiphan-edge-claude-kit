@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- An Anthropic API key (`sk-ant-api03-...`, `sk-ant-admin01-...`) is masked even bare, with no `key:` in
+  front, for example inside an error message. Same rule as Fleetwatch. Words like "task-antenna" and
+  "risk-ant-42" are left alone. The no-jq fallback withholds text with an `sk-ant-` key.
+- `tests/redaction-cases.json` is now version 2, with cases for a bare Anthropic key and for look-alike words.
+  Still byte-identical with Fleetwatch's copy.
+
 ## v1.1.1 (2026-10-07)
 
 Security parity with Fleetwatch: one redaction set for both, a stricter write guard, and a read-only switch.
