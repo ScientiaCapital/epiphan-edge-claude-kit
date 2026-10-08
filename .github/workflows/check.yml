@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: shellcheck
         run: shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh
       - name: JSON is valid
@@ -42,6 +44,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Hook and permission tests
         run: bash tests/hook-test.sh
 
@@ -57,6 +61,8 @@ jobs:
       EPIPHAN_KIT_CLONE: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: First run (Europe)
         env:
           EPIPHAN_KIT_DIR: ${{ runner.temp }}/kit
@@ -85,6 +91,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install Claude Code
         run: curl -fsSL https://claude.ai/install.sh | bash
       - name: Run twice with only basic tools and a git that always fails
@@ -119,6 +127,8 @@ jobs:
         shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: First run (Europe)
         env:
           EPIPHAN_KIT_DIR: ${{ runner.temp }}/kit-${{ matrix.shell }}
