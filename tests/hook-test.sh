@@ -141,7 +141,8 @@ nojq=$(mktemp -d)
 for b in bash cat grep head printf mktemp rm sleep sed tr wc; do p=$(command -v "$b") && ln -s "$p" "$nojq/$b" 2>/dev/null; done
 if PATH="$nojq" "$nojq/bash" -c 'exit 0' 2>/dev/null; then
   for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}' \
-           '"api_key=FAKE"' '"key: FAKE"' '"sent Basic RkFLRUJBU0lD"' '"stream%20key=FAKE"' '{"apiKey":"FAKE"}' '"ftp://u:FAKE@h/x"'; do
+           '"api_key=FAKE"' '"key: FAKE"' '"sent Basic RkFLRUJBU0lD"' '"stream%20key=FAKE"' '{"apiKey":"FAKE"}' '"ftp://u:FAKE@h/x"' \
+           '"401 for sk-ant-api03-FAKE"'; do
     out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | PATH="$nojq" "$nojq/bash" "$redact")
     case "$out" in *withheld*) ok "no jq: withholds $t" ;; *) bad "no jq: passed $t" ;; esac
   done
@@ -185,13 +186,16 @@ redacts "a mask before wss userinfo"   'wss://[redacted]u:FAKE31@ws.example/x'
 redacts "key=value"                    'key=FAKE32'
 redacts "short Bearer token with a digit" 'Bearer FAKE3'
 redacts "long Bearer token, letters only" 'Bearer FAKEabcdefghijklmnopqrstuvwxyz'
+redacts "a bare Anthropic key"         'Anthropic said 401 for sk-ant-api03-FAKE34_abc-DEF'
+redacts "an Anthropic key in brackets" 'request failed (sk-ant-api03-FAKE35).'
+redacts "a mask before an Anthropic key" '[redacted]sk-ant-api03-FAKE36'
 redacts "table stream-id column, not a UUID" "$(printf '| Name | Stream ID |\n|---|---|\n| YT | live/FAKE33 |')"
 out=$(jq -cn --arg t "$(printf '| Name | Stream ID |\n|---|---|\n| YT | 0be33e88-d0f3-4421-8f26-f06c9092183c |')" \
   '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:$t}]}' | bash "$redact")
 if [ -z "$out" ]; then ok "keeps a UUID in a table stream-id column"; else bad "masked a UUID stream ID in a table: $out"; fi
 # Words that contain "key" aren't a key, and Bearer/Basic need a token-like value.
 for t in 'monkey: banana' 'keyboard: US' 'hotkey: F5' 'Keynote: Passwords 101' 'monkey=banana' 'keyboard=US' 'hotkey=F5' 'Keynote=Passwords' \
-         'Basic setup is done' 'Basic settings' 'Bearer of good news' 'a Bearer token'; do
+         'Basic setup is done' 'Basic settings' 'Bearer of good news' 'a Bearer token' 'risk-ant-42 is a part number'; do
   t=$(jq -cn --arg t "$t" '$t' | tr -d '\r')
   once=$(scrub "$t")
   if [ "$once" = "$t" ]; then ok "leaves alone: $t"; else bad "changed plain text: $t -> $once"; fi

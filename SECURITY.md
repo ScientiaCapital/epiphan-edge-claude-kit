@@ -43,10 +43,11 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
   one named like a read (`get_*`, `kb_*`). It denies those calls in bypass mode, denies them all when
   `EPIPHAN_READ_ONLY=1` is set, and denies calls it can't read (including a `tool_name` that isn't a string).
   Other Epiphan services' tools are left to normal permissions.
-- `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, API keys, `Bearer`/`Basic`
-  credentials, `user:password@` in any URL, and RTMP/SRT URL paths in tool output with `[redacted]` before the
-  model sees them, and withholds results it can't check (needs `jq`). A `[redacted]` already in the text is read
-  as part of the value around it, so it can't shield what follows.
+- `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, API keys (an Anthropic
+  `sk-ant-` key even with no label in front), `Bearer`/`Basic` credentials, `user:password@` in any URL, and
+  RTMP/SRT URL paths in tool output with `[redacted]` before the model sees them, and withholds results it
+  can't check (needs `jq`). A `[redacted]` already in the text is read as part of the value around it, so it
+  can't shield what follows.
 - `tests/redaction-cases.json` is a shared set of redaction cases, kept byte-identical with Fleetwatch's Python
   port, so both redactors are held to the same cases.
 - `tests/hook-test.sh` checks all of this in CI on macOS, Linux, and Windows.

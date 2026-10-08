@@ -9,6 +9,7 @@
 #     and their ?query;
 #   - "stream key: abc", "api_key=abc", "Bearer abc" style text is masked too, and so is user:password@ in
 #     any URL;
+#   - an Anthropic API key (sk-ant-api03-..., sk-ant-admin01-...) is masked even bare, with no "key:" in front;
 #   - a "[redacted]" already in the text is read as part of the value around it, so typing one in front of a
 #     secret can't hide the rest, and redacting twice gives the same text as once.
 # JSON is parsed, not pattern-matched, including JSON inside strings. A single text value over 200 KB that
@@ -44,14 +45,14 @@ esac
 
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
 # (grep exits 1 for "no match"; anything else, like an error, goes on to the full check.)
-printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|basic|stream[ _-]?(id|name)|:\\*/'
+printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|basic|sk-ant-|stream[ _-]?(id|name)|:\\*/'
 [ $? -eq 1 ] && exit 0
 
 if ! command -v jq >/dev/null 2>&1; then
   # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "pwd": ...),
-  # "stream key: ...", "api_key=..." or "Bearer ..." text, a streaming URL with a path, or any URL with user:password@ or a
+  # "stream key: ...", "api_key=..." or "Bearer ..." text, an sk-ant-... key, a streaming URL with a path, or any URL with user:password@ or a
   # ?query. Words like "Keynote" in an event title don't count.
-  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream([ _-]|%20)?(key|name)|password|passphrase|passwd|pwd|secret|token|authorization|(^|[^a-z0-9])key)["'\'']?[[:space:]]*[:=]|bearer[[:space:]]|basic[[:space:]]+[A-Za-z0-9+/=]{8}|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
+  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream([ _-]|%20)?(key|name)|password|passphrase|passwd|pwd|secret|token|authorization|(^|[^a-z0-9])key)["'\'']?[[:space:]]*[:=]|bearer[[:space:]]|basic[[:space:]]+[A-Za-z0-9+/=]{8}|(^|[^A-Za-z0-9_])sk-ant-|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
   [ $? -eq 1 ] && exit 0
   withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
 fi
@@ -96,7 +97,7 @@ trap 'rm -f "$tmp"' EXIT
   def masks: "(?:\(M))+(?![\\w/.~%+=&:@?#\\[-])";
   def thru(c): "(?:\(masks)|(?:\(M)|\(c))*)";  # a value of c characters, read through any masks in it
   def scrub_text:
-    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|basic|stream"; "i") | not then .
+    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|basic|stream|sk-ant-"; "i") | not then .
     elif length > 200000 then "[Epiphan kit: a long text value was withheld because it was too long to check for stream keys]"
     else
       (if test("\\|") then scrub_tables else . end)
@@ -111,6 +112,7 @@ trap 'rm -f "$tmp"' EXIT
            "\(.k)\(if .dq then "\"[redacted]\"" elif .sq then "'"'"'[redacted]'"'"'" else "\(.oq // "")\(.s // "")[redacted]" end)"; "i")
       | gsub("(?<s>\\b(?:bearer|basic)\\s+)(?:\(masks)|[\\w.~+/=-]*\(M)(?:\(M)|[\\w.~+/=-])*|(?=[\\w.~+/-]*[0-9+/=])[\\w.~+/-]+=*|[\\w.~+/-]{20,}=*)";  # a token: a digit, +, / or =, or 20+ characters
            "\(.s)[redacted]"; "i")
+      | gsub("\\bsk-ant-(?:\(M)|[\\w-])+"; "[redacted]"; "i")  # an Anthropic API key, even bare
     end;
   def redact:
     if type == "object" then
