@@ -40,7 +40,7 @@ streams) + **recording_status**.
 
 ## Tools
 
-**Read (auto-allowed, under both prefixes):** `get_devices_in_my_team`, `get_device_info`, `get_device_sources`,
+**Read (auto-allowed, under every prefix in `.claude/settings.json`):** `get_devices_in_my_team`, `get_device_info`, `get_device_sources`,
 `get_system_status_for_devices`, `get_recorder_status_for_devices`, `get_storage_status_for_devices`,
 `get_channel_settings`, `get_stream_endpoint(s)`, `get_team_presets`, `get_cms_events_for_device(s)`,
 `get_current_or_next_cms_event_for_device(s)`, `get_cms_names_for_devices`, `get_devices_by_cms`,
@@ -50,8 +50,9 @@ streams) + **recording_status**.
 `create/update/delete_cms_event`, `cms_event_action`, `confirm_cms_event_on_device`,
 `create/update/delete_stream_endpoint`, `apply_team_preset`, `switch_device_to_cms`, `batch_reboot`,
 `batch_firmware_update`. These are in `permissions.ask` in `.claude/settings.json`, and
-`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any non-read tool, including new ones. Bypass mode is
+`.claude/hooks/epiphan-write-guard.sh` forces a prompt for any tool not on the read list above, including new ones. Bypass mode is
 disabled in this folder; if a write comes back BLOCKED for bypass mode anyway, tell the user to leave it (`Shift+Tab`).
+If it comes back blocked as **READ-ONLY**, the user started Claude Code with `EPIPHAN_READ_ONLY=1`: say so and don't retry.
 `.claude/hooks/epiphan-redact.sh` replaces stream keys and credentialed URLs in tool output with `[redacted]`
 before you see them. That's expected: never ask the user for the real values. A result that says it was
 **withheld** couldn't be checked: pass on its advice (install `jq`, or ask about fewer devices) and don't guess.

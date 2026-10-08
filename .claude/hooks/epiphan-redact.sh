@@ -7,7 +7,10 @@
 #     {"id"/"name"/"key": "<secret name>", "value": ...} pairs get the value "[redacted]";
 #   - streaming URLs (rtmp*, srt, rtsp, rist) keep only scheme + host; http(s) URLs lose user:password@
 #     and their ?query;
-#   - "stream key: abc" style text is masked too.
+#   - "stream key: abc", "api_key=abc", "Bearer abc" style text is masked too, and so is user:password@ in
+#     any URL;
+#   - a "[redacted]" already in the text is read as part of the value around it, so typing one in front of a
+#     secret can't hide the rest, and redacting twice gives the same text as once.
 # JSON is parsed, not pattern-matched, including JSON inside strings. A single text value over 200 KB that
 # looks secret-bearing is withheld rather than scanned; whole results that take over 20 s are withheld.
 # Best effort: it knows the field names Epiphan uses today, not every way a secret could be written.
@@ -32,7 +35,7 @@ case "$names" in
   ?*)
     name=${names%\"}; name=${name##*\"}
     server=${name%__*}; server=${server#mcp__}; tool=${name##*__}
-    case "$tool" in get_channel_image|kb_*) exit 0 ;; esac   # preview images and docs pages never hold your keys
+    case "$tool" in get_channel_image|kb_search|kb_fetch) exit 0 ;; esac   # preview images and docs pages never hold your keys
     case "$KNOWN" in
       *" $tool "*) ;;
       *) printf '%s' "$server" | grep -qiE "$DEVICE_SERVER" || exit 0 ;;  # another Epiphan service: not ours to touch
@@ -41,14 +44,14 @@ esac
 
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
 # (grep exits 1 for "no match"; anything else, like an error, goes on to the full check.)
-printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|stream_?(id|name)|:\\*/'
+printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|basic|stream[ _-]?(id|name)|:\\*/'
 [ $? -eq 1 ] && exit 0
 
 if ! command -v jq >/dev/null 2>&1; then
   # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "pwd": ...),
-  # "stream key: ..." or "Bearer ..." text, a streaming URL with a path, or any URL with user:password@ or a
+  # "stream key: ...", "api_key=..." or "Bearer ..." text, a streaming URL with a path, or any URL with user:password@ or a
   # ?query. Words like "Keynote" in an event title don't count.
-  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream[ _-]?(key|name)|password|passphrase|token)[[:space:]]*[:=]|bearer[[:space:]]|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
+  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream([ _-]|%20)?(key|name)|password|passphrase|passwd|pwd|secret|token|authorization|(^|[^a-z0-9])key)["'\'']?[[:space:]]*[:=]|bearer[[:space:]]|basic[[:space:]]+[A-Za-z0-9+/=]{8}|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
   [ $? -eq 1 ] && exit 0
   withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
 fi
@@ -61,12 +64,13 @@ trap 'rm -f "$tmp"' EXIT
 { printf '%s' "$input" 2>/dev/null; } | jq -c '
   def secret_name:
     type == "string"
-    and test("^(?:.*[_-])?(?:streaming_?key|stream_?key|stream_?name|key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)$"; "i")
+    and test("^(?:.*[_-])?(?:streaming_?key|stream_?key|stream_?name|api_?key|private_?key|key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)$"; "i")
     and (test("page|cursor"; "i") | not);
   def stream_id_name: type == "string" and test("^(?:.*[_-])?stream_?id$"; "i");
   def uuid: type == "string" and test("^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$"; "i");
-  def table_secret_col: gsub("^\\s+|\\s+$"; "") | ascii_downcase | gsub("[ -]+"; "_") | (secret_name or stream_id_name);
-  def scrub_tables:  # a pipe table whose header names a secret column: mask that column
+  def table_col: gsub("^\\s+|\\s+$"; "") | ascii_downcase | gsub("[ -]+"; "_");
+  def table_secret_col: table_col | (secret_name or stream_id_name);
+  def scrub_tables:  # a pipe table whose header names a secret column: mask that column (a stream ID only if not a UUID)
     (if test("\n") then "\n" else "\\n" end) as $sep
     | if ([split($sep)[] | select(test("^\\s*\\|"))] | length) < 2 then . else
         reduce (split($sep)[]) as $l ({out: [], cols: null};
@@ -74,29 +78,39 @@ trap 'rm -f "$tmp"' EXIT
           elif ($l | test("^\\s*\\|?[\\s:|-]+$")) then .out += [$l]
           else
             ($l | sub("^\\s*\\|"; "") | sub("\\|\\s*$"; "") | split("|")) as $cells
-            | if .cols == null then .cols = [range(0; $cells | length) | select($cells[.] | table_secret_col)] | .out += [$l]
+            | if .cols == null then .cols = [range(0; $cells | length) | select($cells[.] | table_secret_col)]
+                | .ids = [range(0; $cells | length) | select($cells[.] | table_col | stream_id_name)] | .out += [$l]
               elif (.cols | length) == 0 then .out += [$l]
-              else .cols as $c
+              else .cols as $c | .ids as $ids
                 | .out += ["|" + ([range(0; $cells | length) as $i
-                    | if any($c[]; . == $i) and ($cells[$i] | test("\\S")) then " [redacted] " else $cells[$i] end] | join("|")) + "|"]
+                    | if any($c[]; . == $i) and ($cells[$i] | test("\\S"))
+                         and ((any($ids[]; . == $i) and ($cells[$i] | gsub("^\\s+|\\s+$"; "") | uuid)) | not) then " [redacted] " else $cells[$i] end] | join("|")) + "|"]
               end
           end)
         | .out | join($sep)
       end;
   def mask: if type == "boolean" or type == "null" or . == "" then . else "[redacted]" end;
+  # A "[redacted]" already in the text is read as part of the value around it, so the whole value is masked
+  # again; masks with nothing secret-like after them (a quote, a space, punctuation) are already done.
+  def M: "\\[redacted\\]";
+  def masks: "(?:\(M))+(?![\\w/.~%+=&:@?#\\[-])";
+  def thru(c): "(?:\(masks)|(?:\(M)|\(c))*)";  # a value of c characters, read through any masks in it
   def scrub_text:
-    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|stream"; "i") | not then .
+    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|basic|stream"; "i") | not then .
     elif length > 200000 then "[Epiphan kit: a long text value was withheld because it was too long to check for stream keys]"
     else
       (if test("\\|") then scrub_tables else . end)
-      | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist)://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<r>[/?#][^\\s\"'"'"'<>()\\[\\],]*)?";
+      | gsub("(?<p>\\b[a-z][a-z0-9+.-]*(?:://|:\\\\/\\\\/))(?:\(M)|[^/?#\\s\"<>()\\[\\]])*@"; "\(.p)"; "i")  # user:password@, any scheme
+      | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist)://)(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<r>[/?#]\(thru("[^\\s\"'"'"'<>()\\[\\],]")))?";
            "\(.p)\(.h)\(if .r then "/[redacted]" else "" end)"; "i")
       | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist|https?):\\\\/\\\\/)(?<h>[^\\\\\\s\"'"'"'<>]+)(?<r>\\\\/[^\\s\"'"'"'<>]*)";
            "\(.p)\(.h)\\/[redacted]"; "i")
-      | gsub("(?<p>\\bhttps?://)(?:[^/?#\\s\"<>()\\[\\]]*@)?(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<path>/[^?#\\s\"'"'"'<>()\\[\\],]*)?(?<q>\\?[^\\s\"'"'"'<>()\\[\\],]*)?";
+      | gsub("(?<p>\\b(?:https?|wss?|s?ftps?)://)(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<path>/\(thru("[^?#\\s\"'"'"'<>()\\[\\],]")))?(?<q>\\?\(thru("[^\\s\"'"'"'<>()\\[\\],]")))?";
            "\(.p)\(.h)\(if .path == null then "" elif ((.h + .path) | test("whip|whep|ingest|publish|upload|live|stream|rtmp|srt|push|broadcast"; "i")) then "/[redacted]" else .path end)\(if .q then "?[redacted]" else "" end)"; "i")
-      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream[ _-]?key|stream[ _-]?name|password|passphrase|passwd|secret|client[_-]?secret|access[_-]?token|token|authorization)[\"'"'"']?\\s*[:=]\\s*[\"'"'"']?(?:bearer\\s+|basic\\s+)?)(?<v>[^\\s\"'"'"',;}\\]|]+)";
-           "\(.k)[redacted]"; "i")
+      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream(?:[ _-]|%20)?key|stream(?:[ _-]|%20)?name|password|passphrase|passwd|pwd|secret|client[_-]?secret|access[_-]?token|token|authorization|(?:x[_-])?api[_-]?key|private[_-]?key|key)[\"'"'"']?\\s*[:=]\\s*)(?:(?<dq>\"(?:[^\"\\\\\\n]|\\\\.)*\")|(?<sq>'"'"'(?:[^'"'"'\\\\\\n]|\\\\.)*'"'"')|(?<oq>[\"'"'"'])?(?<s>(?:bearer|basic)\\s+)?(?:\(masks)|(?:\(M)|[^\\s\"'"'"',;}\\]|])+))";
+           "\(.k)\(if .dq then "\"[redacted]\"" elif .sq then "'"'"'[redacted]'"'"'" else "\(.oq // "")\(.s // "")[redacted]" end)"; "i")
+      | gsub("(?<s>\\b(?:bearer|basic)\\s+)(?:\(masks)|[\\w.~+/=-]*\(M)(?:\(M)|[\\w.~+/=-])*|(?=[\\w.~+/-]*[0-9+/=])[\\w.~+/-]+=*|[\\w.~+/-]{20,}=*)";  # a token: a digit, +, / or =, or 20+ characters
+           "\(.s)[redacted]"; "i")
     end;
   def redact:
     if type == "object" then
@@ -116,7 +130,7 @@ trap 'rm -f "$tmp"' EXIT
       else scrub_text end
     else . end;
   (.tool_name // "") as $name
-  | if ($name | split("__") | last | test("^(get_channel_image|kb_.*)$")) then empty else . end
+  | if ($name | split("__") | last | test("^(get_channel_image|kb_search|kb_fetch)$")) then empty else . end
   | .tool_response as $orig
   | ($orig | redact) as $new
   | if $new == $orig then empty

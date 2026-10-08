@@ -73,7 +73,22 @@
       "mcp__claude_ai_Epiphan_MCP__apply_team_preset",
       "mcp__claude_ai_Epiphan_MCP__switch_device_to_cms",
       "mcp__claude_ai_Epiphan_MCP__batch_reboot",
-      "mcp__claude_ai_Epiphan_MCP__batch_firmware_update"
+      "mcp__claude_ai_Epiphan_MCP__batch_firmware_update",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_recording",
+      "mcp__claude_ai_*Epiphan_Cloud__start_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__stop_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__create_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__update_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__delete_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__cms_event_action",
+      "mcp__claude_ai_*Epiphan_Cloud__confirm_cms_event_on_device",
+      "mcp__claude_ai_*Epiphan_Cloud__create_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__update_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__delete_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__apply_team_preset",
+      "mcp__claude_ai_*Epiphan_Cloud__switch_device_to_cms",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_reboot",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_firmware_update"
     ]
   },
   "hooks": {

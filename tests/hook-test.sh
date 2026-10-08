@@ -2,8 +2,9 @@
 # Tests for the hooks in .claude/hooks/ and the permission rules in .claude/settings.json.
 # Write guard: reads pass silently, everything else must "ask" (or "deny" in bypass mode).
 # Redactor: stream keys and credentialed URLs never reach the model.
-set -u
+set -u -o pipefail
 cd "$(dirname "$0")/.." || exit 1
+unset EPIPHAN_READ_ONLY  # the read-only switch is tested on its own below
 hook=.claude/hooks/epiphan-write-guard.sh
 redact=.claude/hooks/epiphan-redact.sh
 fails=0
@@ -22,7 +23,10 @@ expect() { # expect <pass|ask|deny> <label> <stdin>
   bad "$1 $2 (exit=$code, out=$out)"
 }
 
-for p in epiphan claude_ai_Epiphan_MCP; do
+# Prefixes the Epiphan Edge tools appear under: the kit's server, the claude.ai connector Epiphan's guide names,
+# and made-up "Epiphan Cloud" connector names like the ones a team might add.
+prefixes="epiphan claude_ai_Epiphan_MCP claude_ai_Epiphan_Cloud claude_ai_TEST_Epiphan_Cloud claude_ai_Lab_Epiphan_Cloud"
+for p in $prefixes; do
   expect pass "$p read"          "{\"tool_name\":\"mcp__${p}__get_devices_in_my_team\"}"
   expect pass "$p kb"            "{\"tool_name\":\"mcp__${p}__kb_search\"}"
   expect ask  "$p write"         "{\"tool_name\":\"mcp__${p}__batch_recording\"}"
@@ -30,7 +34,31 @@ for p in epiphan claude_ai_Epiphan_MCP; do
   expect ask  "$p stop"          "{\"tool_name\":\"mcp__${p}__stop_stream_endpoint\"}"
   expect ask  "$p preset"        "{\"tool_name\":\"mcp__${p}__apply_team_preset\"}"
   expect ask  "$p future tool"   "{\"tool_name\":\"mcp__${p}__some_new_tool\"}"
+  # Only the tools on the read list pass: a new tool named like a read still asks.
+  expect ask  "$p future get_"   "{\"tool_name\":\"mcp__${p}__get_and_reset_device\"}"
+  expect ask  "$p future kb_"    "{\"tool_name\":\"mcp__${p}__kb_publish\"}"
 done
+# A tool_name that isn't a string can't be checked, so it's blocked.
+expect deny "numeric tool_name"     '{"tool_name":123}'
+expect deny "null tool_name"        '{"tool_name":null}'
+expect deny "array tool_name"       '{"tool_name":["mcp__epiphan__get_device_info"]}'
+expect deny "object tool_name"      '{"tool_name":{"name":"mcp__epiphan__get_device_info"}}'
+expect deny "missing tool_name"     '{"tool_input":{}}'
+expect deny "boolean tool_name"     '{"tool_name":true,"permission_mode":"default"}'
+
+# EPIPHAN_READ_ONLY=1 denies every Epiphan Edge write, in every mode; reads and other services are unchanged.
+for p in $prefixes; do
+  EPIPHAN_READ_ONLY=1 expect deny "read-only: $p write"       "{\"tool_name\":\"mcp__${p}__batch_recording\"}"
+  EPIPHAN_READ_ONLY=1 expect deny "read-only: $p reboot"      "{\"tool_name\":\"mcp__${p}__batch_reboot\"}"
+  EPIPHAN_READ_ONLY=1 expect deny "read-only: $p future tool" "{\"tool_name\":\"mcp__${p}__get_and_reset_device\"}"
+  EPIPHAN_READ_ONLY=1 expect pass "read-only: $p read"        "{\"tool_name\":\"mcp__${p}__get_stream_endpoints\"}"
+done
+EPIPHAN_READ_ONLY=1 expect deny "read-only: known write on an odd connector" '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__batch_reboot"}'
+EPIPHAN_READ_ONLY=1 expect deny "read-only: write in acceptEdits mode"     '{"permission_mode":"acceptEdits","tool_name":"mcp__epiphan__start_stream_endpoint"}'
+EPIPHAN_READ_ONLY=1 expect deny "read-only: unreadable call"               'not json "tool_name":"mcp__epiphan__batch_reboot"'
+EPIPHAN_READ_ONLY=1 expect pass "read-only: other Epiphan service"         '{"tool_name":"mcp__claude_ai_Epiphan_Knowledge__search"}'
+EPIPHAN_READ_ONLY=0 expect ask  "EPIPHAN_READ_ONLY=0 still asks"           '{"tool_name":"mcp__epiphan__batch_recording"}'
+EPIPHAN_READ_ONLY='' expect ask  "empty EPIPHAN_READ_ONLY still asks"       '{"tool_name":"mcp__epiphan__batch_recording"}'
 expect ask "pretty-printed write" $'{\n  "tool_name": "mcp__epiphan__batch_firmware_update",\n  "tool_input": {}\n}'
 expect deny "empty input is blocked"     ''
 expect ask  "malformed input still asks" 'not json "tool_name":"mcp__epiphan__batch_reboot"'
@@ -112,7 +140,8 @@ else bad "huge text value: $((SECONDS - start)) s or leaked"; fi
 nojq=$(mktemp -d)
 for b in bash cat grep head printf mktemp rm sleep sed tr wc; do p=$(command -v "$b") && ln -s "$p" "$nojq/$b" 2>/dev/null; done
 if PATH="$nojq" "$nojq/bash" -c 'exit 0' 2>/dev/null; then
-  for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}'; do
+  for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}' \
+           '"api_key=FAKE"' '"key: FAKE"' '"sent Basic RkFLRUJBU0lD"' '"stream%20key=FAKE"' '{"apiKey":"FAKE"}' '"ftp://u:FAKE@h/x"'; do
     out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | PATH="$nojq" "$nojq/bash" "$redact")
     case "$out" in *withheld*) ok "no jq: withholds $t" ;; *) bad "no jq: passed $t" ;; esac
   done
@@ -122,6 +151,54 @@ else
   echo "skip no-jq checks (can't run a copied bash here, e.g. Git Bash on Windows)"
 fi
 rm -rf "$nojq"
+# Shared corpus: tests/redaction-cases.json is byte-identical in Fleetwatch (src/fleetwatch/redact.py). Each input
+# goes through the redactor as an MCP text block; none of must_not_contain may survive, every must_contain must,
+# and redacting the result again must change nothing.
+scrub() { # scrub <JSON string>: prints, as a JSON string, the text Claude would see after the redactor
+  local out
+  out=$(jq -cn --argjson t "$1" '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:$t}]}' | bash "$redact") || return 1
+  if [ -z "$out" ]; then printf '%s' "$1"; else printf '%s' "$out" | jq -c '.hookSpecificOutput.updatedToolOutput[0].text' | tr -d '\r'; fi
+}
+n=$(jq '.cases | length' tests/redaction-cases.json | tr -d '\r')
+i=0
+while [ "$i" -lt "$n" ]; do
+  c=$(jq -c --argjson i "$i" '.cases[$i]' tests/redaction-cases.json | tr -d '\r')
+  id=$(printf '%s' "$c" | jq -r .id | tr -d '\r')
+  once=$(scrub "$(printf '%s' "$c" | jq -c .input | tr -d '\r')")
+  twice=$(scrub "$once")
+  why=$(jq -nr --argjson c "$c" --argjson o "$once" '
+    [($c.must_not_contain[] | select(. as $s | $o | contains($s)) | "leaks \(.)"),
+     (($c.must_contain // [])[] | select(. as $s | $o | contains($s) | not) | "lost \(.)")] | join(", ")' | tr -d '\r')
+  [ "$once" = "$twice" ] || why="${why:+$why, }not idempotent (second pass gave: $twice)"
+  if [ -z "$why" ]; then ok "corpus $id"; else bad "corpus $id: $why (got: $once)"; fi
+  i=$((i + 1))
+done
+if [ "$i" -gt 0 ]; then ok "corpus: $i cases run"; else bad "corpus: no cases"; fi
+# More typed-mask and false-positive checks the corpus doesn't hold.
+redacts "a mask inside https userinfo" 'https://u:[redacted]FAKE24@host.example/x'
+redacts "a mask inside ftp userinfo"   'ftp://u:[redacted]FAKE25@files.example/x'
+redacts "a mask before a Bearer token" 'Authorization: Bearer [redacted]FAKE26'
+redacts "single-quoted value with space" "{'password': 'FAKE pw27'}"
+redacts "a mask before https userinfo" 'https://[redacted]u:FAKE29@host.example/x'
+redacts "a mask before rtmp userinfo"  'rtmp://[redacted]u:FAKE30@host.example/app'
+redacts "a mask before wss userinfo"   'wss://[redacted]u:FAKE31@ws.example/x'
+redacts "key=value"                    'key=FAKE32'
+redacts "short Bearer token with a digit" 'Bearer FAKE3'
+redacts "long Bearer token, letters only" 'Bearer FAKEabcdefghijklmnopqrstuvwxyz'
+redacts "table stream-id column, not a UUID" "$(printf '| Name | Stream ID |\n|---|---|\n| YT | live/FAKE33 |')"
+out=$(jq -cn --arg t "$(printf '| Name | Stream ID |\n|---|---|\n| YT | 0be33e88-d0f3-4421-8f26-f06c9092183c |')" \
+  '{tool_name:"mcp__epiphan__get_stream_endpoints",tool_response:[{type:"text",text:$t}]}' | bash "$redact")
+if [ -z "$out" ]; then ok "keeps a UUID in a table stream-id column"; else bad "masked a UUID stream ID in a table: $out"; fi
+# Words that contain "key" aren't a key, and Bearer/Basic need a token-like value.
+for t in 'monkey: banana' 'keyboard: US' 'hotkey: F5' 'Keynote: Passwords 101' 'monkey=banana' 'keyboard=US' 'hotkey=F5' 'Keynote=Passwords' \
+         'Basic setup is done' 'Basic settings' 'Bearer of good news' 'a Bearer token'; do
+  t=$(jq -cn --arg t "$t" '$t' | tr -d '\r')
+  once=$(scrub "$t")
+  if [ "$once" = "$t" ]; then ok "leaves alone: $t"; else bad "changed plain text: $t -> $once"; fi
+done
+out=$(printf '%s' '{"tool_name":"mcp__epiphan__kb_publish","tool_response":{"stream_key":"FAKE"}}' | bash "$redact")
+if [ -n "$out" ] && ! printf '%s' "$out" | grep -q FAKE; then ok "a new kb_ tool is still redacted"; else bad "a new kb_ tool skipped redaction"; fi
+
 # Both hooks know the same Epiphan tools as settings.json.
 known=$(jq -r '.permissions.allow[], .permissions.ask[] | select(startswith("mcp__epiphan__")) | sub("mcp__epiphan__"; "")' .claude/settings.json | tr -d '\r' | sort | tr '\n' ' ')
 guard_known=$(grep -E '^(READS|WRITES)=' "$hook" | cut -d'"' -f2 | tr ' ' '\n' | grep . | sort | tr '\n' ' ')
@@ -153,17 +230,35 @@ done
 # Bypass mode (which skips "ask") stays off in this folder.
 if [ "$(jq -r '.permissions.disableBypassPermissionsMode' .claude/settings.json | tr -d '\r')" = disable ]; then ok "bypass mode disabled in settings"
 else bad "settings.json no longer disables bypass mode"; fi
-# The settings must ask (not allow) every write, for both prefixes.
-for p in epiphan claude_ai_Epiphan_MCP; do
+# The settings must ask (not allow) every write. Rule prefixes: two literal server names, and a glob for any
+# "... Epiphan Cloud" connector (Claude Code accepts globs in ask/deny rules, not in allow rules).
+rule_prefixes=(epiphan claude_ai_Epiphan_MCP 'claude_ai_*Epiphan_Cloud')
+for p in "${rule_prefixes[@]}"; do
   n=$(jq --arg p "mcp__${p}__" '[.permissions.ask[] | select(startswith($p))] | length' .claude/settings.json)
   if [ "$n" -eq 15 ]; then ok "settings ask has 15 writes for $p"; else bad "settings ask has $n writes for $p"; fi
+done
+for p in epiphan claude_ai_Epiphan_MCP; do
   n=$(jq --arg p "mcp__${p}__" '[.permissions.allow[] | select(startswith($p))] | length' .claude/settings.json)
   if [ "$n" -eq 20 ]; then ok "settings allow has 20 reads for $p"; else bad "settings allow has $n reads for $p"; fi
 done
-settings=$(jq -r '.permissions.ask[] | select(startswith("mcp__epiphan__"))' .claude/settings.json | tr -d '\r' | sort)  # jq.exe on Windows prints CRLF
-# README's copy-paste read-only "deny" block must list exactly the same writes as settings.json.
-readme=$(grep -o '"mcp__epiphan__[a-z_]*"' README.md | tr -d '"\r' | sort)
-if [ "$readme" = "$settings" ]; then ok "README deny list matches settings ask"; else bad "README deny list differs from settings ask"; fi
+n=$(jq '[.permissions.allow[] | select(contains("*"))] | length' .claude/settings.json)
+if [ "$n" -eq 0 ]; then ok "no wildcard in allow"; else bad "$n wildcard rules in allow"; fi
+n=$(jq '[.permissions.allow[], .permissions.ask[] | select(startswith("mcp__") and (startswith("mcp__epiphan__") or startswith("mcp__claude_ai_Epiphan_MCP__") or startswith("mcp__claude_ai_*Epiphan_Cloud__") | not))] | length' .claude/settings.json)
+if [ "$n" -eq 0 ]; then ok "settings name no other connector"; else bad "$n settings rules name another connector"; fi
+# The glob rules match every "... Epiphan Cloud" connector name (glob * read as the regex .*).
+for c in claude_ai_Epiphan_Cloud claude_ai_TEST_Epiphan_Cloud claude_ai_Lab_Epiphan_Cloud; do
+  n=$(jq --arg t "mcp__${c}__batch_reboot" '[.permissions.ask[] | select(contains("*")) | gsub("\\*"; ".*") | ("^" + . + "$") as $r | select($t | test($r))] | length' .claude/settings.json)
+  if [ "$n" -eq 1 ]; then ok "an ask rule matches mcp__${c}__batch_reboot"; else bad "$n ask rules match mcp__${c}__batch_reboot"; fi
+done
+# README's copy-paste read-only "deny" block must list exactly the same writes as settings.json, under every prefix.
+for p in "${rule_prefixes[@]}"; do
+  settings=$(jq -r --arg p "mcp__${p}__" '.permissions.ask[] | select(startswith($p))' .claude/settings.json | tr -d '\r' | sort)  # jq.exe on Windows prints CRLF
+  readme=$(grep -oF "\"mcp__${p}__" README.md | wc -l | tr -d ' \r')
+  readme_list=$(grep -o "\"mcp__${p//\*/\\*}__[a-z_]*\"" README.md | tr -d '"\r' | sort)
+  if [ "$readme_list" = "$settings" ] && [ "$readme" -eq 15 ]; then ok "README deny list matches settings ask for $p"; else bad "README deny list differs from settings ask for $p"; fi
+done
+if grep -q 'EPIPHAN_READ_ONLY=1' README.md; then ok "README explains EPIPHAN_READ_ONLY=1"; else bad "README doesn't mention EPIPHAN_READ_ONLY=1"; fi
+settings=$(jq -r '.permissions.ask[] | select(startswith("mcp__epiphan__"))' .claude/settings.json | tr -d '\r' | sort)
 # CLAUDE.md's "Write (ask every time)" line must name every write in settings.json.
 writes=$(awk '/^\*\*Write/{f=1} f&&/^$/{exit} f' CLAUDE.md)  # the paragraph, which wraps
 for w in $settings; do
@@ -188,7 +283,8 @@ post=$(jq -r '.hooks.PostToolUse[0].matcher' .claude/settings.json | tr -d '\r')
 if [ "$matcher" = "$post" ]; then ok "PreToolUse and PostToolUse matchers agree"; else bad "PreToolUse and PostToolUse matchers differ"; fi
 for n in epiphan Epiphan epiphan-eu epiphan_eu plugin_av_epiphan claude_ai_Epiphan claude_ai_Epiphan_MCP claude_ai_epiphan_mcp \
          claude_ai_EPIPHAN_MCP claude_ai_Epiphan_Cloud claude_ai_EpiphanCloud claude_ai_Epiphan-Cloud claude_ai_My_Epiphan_Cloud \
-         claude_ai_Epiphan_Edge claude_ai_Epiphan_Cloud_EU claude_ai_Epiphan_Pearl; do
+         claude_ai_Epiphan_Edge claude_ai_Epiphan_Cloud_EU claude_ai_Epiphan_Pearl claude_ai_TEST_Epiphan_Cloud \
+         claude_ai_Lab_Epiphan_Cloud; do
   if jq -en --arg n "mcp__${n}__batch_reboot" --arg m "$matcher" '$n | test($m)' >/dev/null; then ok "matcher guards $n"; else bad "matcher misses $n"; fi
 done
 for n in claude_ai_Gmail__search claude_ai_Slack__send claude_ai_Gmail__search_epiphan_threads; do

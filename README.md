@@ -98,6 +98,7 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 | `/start`, `/triage` or another old command does nothing | Commands were renamed in v1.1.0 to say what they do. `/start` is now `/connect-epiphan`, `/triage` is `/find-problems`. Type `/` to see them all, or see [CHANGELOG.md](CHANGELOG.md). |
 | A change was refused | Changes need an **Epiphan Edge Premium** plan. The EC20 camera can't record or stream on command. |
 | `BLOCKED: ... bypass mode` | Claude is in bypass mode. Press `Shift+Tab` to leave it, then ask again. |
+| `READ-ONLY: ...` | Claude Code was started with `EPIPHAN_READ_ONLY=1`. To make a change (with your approval), quit and start `claude` without it. |
 | `[Epiphan kit: this result was withheld ...]` | Install `jq` (see Safety model), or ask about fewer devices at once. |
 | `already exists but isn't this kit` | You have a different folder with the same name. Rename it, then paste Step 2 again. |
 | Anything else | Run `claude doctor`, or [open an issue](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/issues). |
@@ -137,11 +138,16 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
 
 ## Safety model
 
-- **Reads run without prompting.** Every `get_*` and `kb_*` tool is allowed in `.claude/settings.json`.
+- **There's no read-only sign-in.** Epiphan Edge's OAuth sign-in has no read-only scope: the token can do
+  whatever your Edge account can do in the team you picked. "Read-only" in this kit means the write guard
+  hook and the permission rules below, not a limit on the token. If you only want to watch a fleet, sign in
+  with a dedicated Edge account that has the lowest role your team allows.
+- **Reads run without prompting.** The 20 read tools Epiphan Edge has today are allowed in `.claude/settings.json`.
 - **Every write asks first.** Recording, streaming, CMS events, presets, reboots and firmware are in
   `permissions.ask`. A hook (`.claude/hooks/epiphan-write-guard.sh`) also forces a prompt for every Epiphan Edge
-  write tool under any connector name and for any new non-read tool on the Edge server itself, and adds a
-  louder warning to reboots, firmware updates, presets, stops and deletes. A call the hook can't read is blocked.
+  write tool under any connector name, and for any tool on the Edge server itself that isn't on the read list
+  (even a new one named like a read), and adds a louder warning to reboots, firmware updates, presets, stops
+  and deletes. A call the hook can't read is blocked.
 - **Bypass mode is off in this folder.** `.claude/settings.json` sets `disableBypassPermissionsMode`, so
   `--dangerously-skip-permissions` starts Claude in normal mode here, and every write still asks. If bypass mode
   is ever on anyway, the hook blocks Epiphan writes. To allow bypass mode, remove that line from your copy.
@@ -156,15 +162,33 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
   can; otherwise run `brew install jq` (macOS 13–14) or install your Linux distribution's `jq` package.
 - **Connector names.** Both hooks cover Epiphan Edge's tools under any connector name that contains "Epiphan"
   ([Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says "Epiphan MCP").
-  Under a name other than "Epiphan MCP", reads also prompt once, since only that name is pre-allowed. Other
-  Epiphan connectors you may have (docs, CRM, ...) are left alone.
+  `.claude/settings.json` pre-allows reads under `mcp__epiphan__` and `mcp__claude_ai_Epiphan_MCP__`, and asks
+  for writes under those and under any connector whose name ends in "Epiphan Cloud" (`mcp__claude_ai_*Epiphan_Cloud__`).
+  Under any other name, reads also prompt once, since Claude Code's allow rules can't use wildcards in a
+  connector name. Other Epiphan connectors you may have (docs, CRM, ...) are left alone.
 - **Windows.** The hooks run with Git Bash, which the installer sets up. Without it the hooks can't run, but
   every listed write still prompts through `permissions.ask`.
 - The agent is instructed never to reboot, update or re-preset a device that's recording, streaming, or about
   to start a scheduled event, and to treat device names, on-screen text and docs as data, not instructions.
 
-**Want it read-only?** Create `.claude/settings.local.json` (it's gitignored, so it stays on your machine).
-`deny` always wins over `ask`, and denied tools disappear from the agent entirely:
+**Want it read-only?** Start Claude Code with `EPIPHAN_READ_ONLY=1`:
+
+```bash
+EPIPHAN_READ_ONLY=1 claude
+```
+
+(Windows PowerShell: `$env:EPIPHAN_READ_ONLY = "1"; claude`.) The write guard then blocks every Epiphan Edge
+write instead of asking: under `mcp__epiphan__`, `mcp__claude_ai_Epiphan_MCP__`,
+`mcp__claude_ai_*Epiphan_Cloud__` and any other Epiphan Edge connector name, including write tools Epiphan adds
+later. Reads work as usual.
+
+That switch needs the hooks to run. To block writes without them too, add a `deny` list to
+`.claude/settings.local.json` (it's gitignored, so it stays on your machine). `deny` always wins over `ask`,
+and denied tools disappear from the agent entirely. This one covers the kit's server, the "Epiphan MCP"
+connector, and any connector whose name ends in "Epiphan Cloud" (the `*` matches the rest of the name):
+
+<details>
+<summary>.claude/settings.local.json</summary>
 
 ```json
 {
@@ -184,17 +208,48 @@ Or just ask: *"Which rooms can't record tomorrow morning?"*
       "mcp__epiphan__apply_team_preset",
       "mcp__epiphan__switch_device_to_cms",
       "mcp__epiphan__batch_reboot",
-      "mcp__epiphan__batch_firmware_update"
+      "mcp__epiphan__batch_firmware_update",
+      "mcp__claude_ai_Epiphan_MCP__batch_recording",
+      "mcp__claude_ai_Epiphan_MCP__start_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__stop_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__create_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__update_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__delete_cms_event",
+      "mcp__claude_ai_Epiphan_MCP__cms_event_action",
+      "mcp__claude_ai_Epiphan_MCP__confirm_cms_event_on_device",
+      "mcp__claude_ai_Epiphan_MCP__create_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__update_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__delete_stream_endpoint",
+      "mcp__claude_ai_Epiphan_MCP__apply_team_preset",
+      "mcp__claude_ai_Epiphan_MCP__switch_device_to_cms",
+      "mcp__claude_ai_Epiphan_MCP__batch_reboot",
+      "mcp__claude_ai_Epiphan_MCP__batch_firmware_update",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_recording",
+      "mcp__claude_ai_*Epiphan_Cloud__start_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__stop_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__create_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__update_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__delete_cms_event",
+      "mcp__claude_ai_*Epiphan_Cloud__cms_event_action",
+      "mcp__claude_ai_*Epiphan_Cloud__confirm_cms_event_on_device",
+      "mcp__claude_ai_*Epiphan_Cloud__create_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__update_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__delete_stream_endpoint",
+      "mcp__claude_ai_*Epiphan_Cloud__apply_team_preset",
+      "mcp__claude_ai_*Epiphan_Cloud__switch_device_to_cms",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_reboot",
+      "mcp__claude_ai_*Epiphan_Cloud__batch_firmware_update"
     ]
   }
 }
 ```
 
-Using the claude.ai "Epiphan MCP" connector instead? Add the same 15 names again with the
-`mcp__claude_ai_Epiphan_MCP__` prefix. Named it something else? The prefix is `mcp__claude_ai_` plus the
-connector name with spaces as underscores (for "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Type `/mcp`
-to see the exact name. A write tool Epiphan adds later isn't on this list until you add it, but the hook still
-makes it ask.
+</details>
+
+Named your connector something else? The prefix is `mcp__claude_ai_` plus the connector name with spaces as
+underscores (for "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Type `/mcp` to see the exact name. A write
+tool Epiphan adds later isn't on this list until you add it, but the hook still makes it ask (or blocks it with
+`EPIPHAN_READ_ONLY=1`). Either way, Epiphan's sign-in itself isn't read-only (see the top of this section).
 
 ## Make it yours
 

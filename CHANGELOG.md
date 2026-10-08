@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.1.1 (2026-10-07)
+
+Security parity with Fleetwatch: one redaction set for both, a stricter write guard, and a read-only switch.
+
+- **Correction to v1.0.2.** Its "0 of 36 leak" was true for that test set, but a value with `[redacted]` typed
+  in front of it leaked: `password=[redacted]hunter2` let `hunter2` through, and so did the same trick in
+  RTMP, SRT and https URLs and after `token:`. Fixed here: a mask already in the text is read as part of the
+  value around it and the whole value is masked, and a finished mask is left alone, so redacting twice gives
+  the same text as once.
+- **More secret shapes are masked:** bare `key:`, `api_key`, `x-api-key`, `pwd=`, JSON `apiKey` / `privateKey`,
+  `Bearer` / `Basic` credentials anywhere in text, `user:password@` in ftp, sftp, wss and any other URL,
+  `stream%20key=`, and quoted values with spaces (`stream_key = "a b"`). `Bearer`/`Basic` mask the next word
+  only when it looks like a token (a digit, `+`, `/` or `=`, or 20+ characters), so "Basic settings" stays.
+  Words like "monkey", "keyboard", "hotkey" and "Keynote" are left alone. A `[redacted]` typed into a URL's
+  `user:password@` doesn't hide the password. A table's stream ID column keeps UUIDs, as JSON `stream_id`
+  does, and masks anything else; a "Stream ID" header (with a space) no longer skips the check. The no-jq
+  fallback withholds the new shapes.
+- **Shared redaction cases.** `tests/redaction-cases.json` is byte-identical with Fleetwatch's copy, and
+  `tests/hook-test.sh` checks every case: nothing secret survives, kept text stays, and a second pass changes
+  nothing.
+- **Write guard: only the read list passes.** On the Edge server, a new tool named like a read (`get_*`, `kb_*`)
+  now asks instead of passing. A `tool_name` that isn't a string (`{"tool_name":123}`) is denied.
+- **`EPIPHAN_READ_ONLY=1`** in the environment makes the guard deny every Epiphan Edge write instead of asking.
+- **More connector names covered:** `.claude/settings.json` and the README's read-only block now ask for (or
+  deny) the write tools under any connector whose name ends in "Epiphan Cloud" (`mcp__claude_ai_*Epiphan_Cloud__`).
+- **Docs say plainly that Epiphan Edge sign-in has no read-only scope**, and suggest a dedicated low-privilege
+  Edge account for watching a fleet.
+- **Repo hygiene:** Dependabot for GitHub Actions, CODEOWNERS for the hooks, settings and CI, a PR template,
+  `persist-credentials: false` on every checkout, a pre-commit config (shellcheck, actionlint, zizmor), and
+  `*.pem` / `*.key` in `.gitignore`.
+
 ## v1.1.0 (2026-10-06)
 
 From first-run feedback: easier sign-in, commands that say what they do, and a calmer tone.

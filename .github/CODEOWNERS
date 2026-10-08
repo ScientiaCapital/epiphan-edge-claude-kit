@@ -1,0 +1,8 @@
+# Default owner for everything.
+*                        @ScientiaCapital
+
+# Safety-critical paths: the write guard, redaction, permission rules, their tests, and CI.
+/.claude/hooks/          @ScientiaCapital
+/.claude/settings.json   @ScientiaCapital
+/tests/                  @ScientiaCapital
+/.github/                @ScientiaCapital

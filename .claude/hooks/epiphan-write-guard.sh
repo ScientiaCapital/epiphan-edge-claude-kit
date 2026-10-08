@@ -3,12 +3,13 @@
 # .claude/settings.json sends every server with "epiphan" in its name here; this decides which calls matter:
 #   - the Epiphan Edge tools this kit knows: reads pass, writes need your approval;
 #   - any other tool on the device server itself (the kit's "epiphan" server, or a connector named like
-#     "Epiphan MCP" / "Epiphan Cloud" / "Epiphan Edge"): reads (get_*, kb_*) pass, the rest needs approval,
-#     so write tools the server adds later are covered;
+#     "Epiphan MCP" / "Epiphan Cloud" / "Test Epiphan Cloud" / "Epiphan Edge") needs approval, even one named like
+#     a read (get_*, kb_*), so tools the server adds later are covered;
 #   - other Epiphan services (a connector for docs, CRM, ...) are left to Claude Code's normal permissions.
 # Disruptive writes (reboot, firmware, stop, delete, presets) get a louder warning in the approval prompt.
 # In bypass mode Claude Code skips "ask", so writes are denied there instead ("deny" still applies).
-# Fails closed: a call it can't read is denied, never waved through.
+# With EPIPHAN_READ_ONLY=1 in the environment, every one of those calls is denied instead of asked.
+# Fails closed: a call it can't read (no tool_name, or one that isn't a string) is denied, never waved through.
 # jq is used when present; otherwise grep, which works on a stock Mac and in Git Bash on Windows.
 # Keep these lists in step with .claude/settings.json and epiphan-redact.sh (tests/hook-test.sh checks).
 READS=" get_devices_in_my_team get_device_info get_device_sources get_system_status_for_devices get_recorder_status_for_devices get_storage_status_for_devices get_channel_settings get_channel_image get_channel_audio_levels get_stream_endpoint get_stream_endpoints get_team_presets get_cms_events_for_device get_cms_events_for_devices get_current_or_next_cms_event_for_device get_current_or_next_cms_events_for_devices get_cms_names_for_devices get_devices_by_cms kb_search kb_fetch "
@@ -17,7 +18,7 @@ DEVICE_SERVER='^(epiphan([-_].*)?|claude_ai_(.*_)?epiphan([-_]?(mcp|cloud|edge)(
 input=$(cat)
 unsure=""
 
-if command -v jq >/dev/null 2>&1 && parsed=$(printf '%s' "$input" | jq -r '[.tool_name // "", .permission_mode // ""] | join("\n")' 2>/dev/null); then
+if command -v jq >/dev/null 2>&1 && parsed=$(printf '%s' "$input" | jq -r '[(.tool_name | if type == "string" then . else "" end), (.permission_mode // "" | tostring)] | map(gsub("\n"; " ")) | join("\n")' 2>/dev/null); then
   name=${parsed%%$'\n'*}
   mode=${parsed#*$'\n'}
 else
@@ -37,7 +38,14 @@ decide() { # decide <ask|deny> <reason>
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"%s","permissionDecisionReason":"%s"}}\n' "$1" "$2"
   exit 0
 }
+read_only() {
+  case "$(printf '%s' "${EPIPHAN_READ_ONLY:-}" | tr '[:upper:]' '[:lower:]')" in 1|true|yes|on) return 0 ;; esac
+  return 1
+}
 write() {
+  if read_only; then
+    decide deny "READ-ONLY: '${tool:-unknown}' changes Epiphan devices, and EPIPHAN_READ_ONLY is on, so it's blocked. To make changes (with your approval), quit Claude Code, unset EPIPHAN_READ_ONLY and start it again."
+  fi
   if [ "$mode" = bypassPermissions ]; then
     decide deny "BLOCKED: '${tool:-unknown}' changes Epiphan devices, and bypass mode would run it without asking. Leave bypass mode (Shift+Tab) and try again to approve it yourself."
   fi
@@ -57,8 +65,6 @@ write() {
 [ -n "$unsure" ] && write
 case "$READS" in *" $tool "*) exit 0 ;; esac
 case "$WRITES" in *" $tool "*) write ;; esac
-if printf '%s' "$server" | grep -qiE "$DEVICE_SERVER"; then
-  case "$tool" in get_*|kb_*) exit 0 ;; esac
-  write
-fi
+# Anything else on the device server asks, even a new tool named like a read: only the list above is trusted.
+printf '%s' "$server" | grep -qiE "$DEVICE_SERVER" && write
 exit 0  # another Epiphan service (docs, CRM, ...): Claude Code's normal permissions apply
