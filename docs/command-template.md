@@ -6,7 +6,7 @@ allowed-tools: mcp__epiphan__get_devices_in_my_team
 
 # /check-something: Short title
 
-Scope: `$ARGUMENTS` (default: whole team). Follow the **Tone** and **Storage** rules in CLAUDE.md.
+Scope: `$ARGUMENTS` (default: whole team). Follow the Tone and Storage rules in CLAUDE.md.
 
 1. `get_devices_in_my_team` once. Resolve any room or group named in the arguments.
 2. <Which other read tools to call, batched for all relevant devices.>
