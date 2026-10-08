@@ -7,8 +7,8 @@ This kit can control live Epiphan devices (recording, streaming, reboots, firmwa
 Examples: a write tool that runs without an approval prompt (or runs in bypass mode), a hook letting something
 through, a stream key that reaches the agent or the screen.
 
-Please **don't open a public issue**. Report it privately through GitHub:
-**Security → Report a vulnerability** on this repo
+Please don't open a public issue. Report it privately through GitHub:
+Security → Report a vulnerability on this repo
 ([direct link](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/security/advisories/new)).
 You'll get a reply within a few business days.
 
@@ -26,11 +26,11 @@ no secrets. The installer only writes:
 
 `.claude/settings.local.json` (your personal overrides) is gitignored.
 
-## Epiphan Edge sign-in is not read-only
+## Epiphan Edge sign-in isn't read-only
 
-Epiphan Edge's OAuth sign-in has **no read-only scope**. The token Claude Code holds can do whatever the
+Epiphan Edge's OAuth sign-in has no read-only scope. The token Claude Code holds can do whatever the
 signed-in account can do in the team picked at sign-in: record, stream, reboot, update firmware, apply presets,
-edit events. "Read-only" in this kit means the write guard hook (and, if you add them, `deny` rules), not a
+and edit events. "Read-only" in this kit means the write guard hook (and, if you add them, `deny` rules), not a
 limit on the token. If you only want to watch a fleet, sign in with a dedicated Edge account that has the
 lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
 
@@ -49,12 +49,12 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
   as part of the value around it, so it can't shield what follows.
 - `tests/redaction-cases.json` is a shared set of redaction cases, kept byte-identical with Fleetwatch's Python
   port, so both redactors are held to the same cases.
-- `tests/hook-test.sh` checks all of this in CI on macOS, Linux and Windows.
+- `tests/hook-test.sh` checks all of this in CI on macOS, Linux, and Windows.
 
 Known limits, so you can judge them yourself:
 - Redaction hides secrets from the model only. Claude Code keeps the
   original result in your local session history (`~/.claude/projects`) and, if you enabled it, in telemetry.
-- It recognises the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
+- It recognizes the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
   with a key column, credentialed or ingest URLs). A secret written some other way may not be caught.
   Epiphan's `StreamID` (a UUID that `/stream-room` needs) is kept; any other stream ID is masked.
 - Error output from a failed tool call isn't redacted (it normally echoes only what Claude sent).

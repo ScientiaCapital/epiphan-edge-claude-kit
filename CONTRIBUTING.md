@@ -8,17 +8,17 @@ New checks are the best contribution: a command that answers a question you keep
    Name it in plain words, verb or noun plus what it acts on (`check-room`, `find-problems`), so someone who
    has never seen it can guess what it does. No jargon or codes (`triage`, `preflight`, `P1`).
 2. Fill in `description`, `argument-hint`, and `allowed-tools`. The description shows in the `/` menu: say
-   what it does in plain words and end with **Read only** or **Changes your device (asks you first)**.
+   what it does in plain words and end with "Read only" or "Changes your device (asks you first)".
 3. Write the steps in plain English: which tools to call, what to compute, what to show.
 4. Run it against your own fleet a few times and tune the output length.
 
 ## Rules for commands
 
 - Tool names use the `mcp__epiphan__` prefix (the server name in `.mcp.json`).
-- **`allowed-tools` lists read tools only** (`get_*`, `kb_*`, and the harmless `Bash(date*)`). `allowed-tools` pre-approves
+- `allowed-tools` lists read tools only (`get_*`, `kb_*`, and the harmless `Bash(date*)`). `allowed-tools` pre-approves
   tools. Today the `ask` rules in `.claude/settings.json` still win, but anyone who removes those rules
   would then get writes with no prompt, so keep writes out.
-- Follow the **Tone** section in `CLAUDE.md`: calm, plain words, priority as Fix first / Fix soon / When
+- Follow the Tone section in `CLAUDE.md`: calm, plain words, priority as Fix first / Fix soon / When
   convenient, and storage as an FYI note, not a problem.
 - A command that writes must: resolve the target by name → check the room → show the exact call → let the user
   approve → verify with read tools → print the rollback. See `.claude/commands/record-room.md`.
@@ -35,11 +35,11 @@ New checks are the best contribution: a command that answers a question you keep
   `.claude/settings.json`, the README's read-only list, that every command is in the README and CLAUDE.md
   tables, and that no command pre-approves a write. It needs `jq`.
 - `shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh` if you touch a script.
-- CI runs both on every PR, plus the installers on macOS, Linux and Windows.
+- CI runs both on every PR, plus the installers on macOS, Linux, and Windows.
 
 ## PR checklist
 
-- [ ] No real device names, IPs, serials, stream keys, emails or screenshots from your own fleet
+- [ ] No real device names, IPs, serials, stream keys, emails, or screenshots from your own fleet
 - [ ] `allowed-tools` contains no write tools
 - [ ] Ran it end to end at least once, and the description ends with Read only or Changes your device (asks you first)
 - [ ] `bash tests/hook-test.sh` passes
