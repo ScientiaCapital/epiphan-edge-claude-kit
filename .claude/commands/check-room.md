@@ -1,7 +1,7 @@
 ---
 description: "Check a room is ready before you record or stream. Read only"
 argument-hint: "<room/device name> [record|stream] [channel name]"
-allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, mcp__epiphan__get_device_sources, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_event_for_device, Bash(date*)
+allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, mcp__epiphan__get_device_sources, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_event_for_device, Bash(date)
 ---
 
 # /check-room: Is this room ready?
@@ -14,7 +14,8 @@ Target: `$ARGUMENTS` (action defaults to "record"). If no room is named, list on
    If it's an **EC20**, say it can't record or stream on command, skip the audio check, and check signal only.
 2. **Checks** (read tools only, batched):
    - Signal: the channel's `channel_no_signal` warning (device list) plus `get_channel_image`
-     (`format: "binary"`; describe the frame in one line). `get_device_sources` has no channel mapping, so
+     (`format: "binary"`; describe the frame in one line). If the frame shows a stream key, password, or
+     credentialed URL, say that it does and don't transcribe it. `get_device_sources` has no channel mapping, so
      use it only to name the live inputs.
    - Audio: `get_channel_audio_levels`, read on the same dBFS-or-linear scale as `/view-room` (step 4 of
      `.claude/commands/view-room.md`)

@@ -15,6 +15,8 @@ Target: `$ARGUMENTS`. If empty, list the online devices and ask which room.
 3. `get_channel_image` with `format: "binary"`. The image goes to the model, not the terminal, so
    **describe the frame concretely**: what's on screen, any text, people, slide or camera shot. If `is_stub`
    is true, explain "no signal" and point to the warning. Don't read out personal emails or phone numbers shown on screen.
+   If the frame shows a stream key, password, or credentialed URL (a streaming dashboard or settings page on the
+   input), say that it does and don't transcribe it.
 4. `get_channel_audio_levels` (Pearl only: the EC20 doesn't report audio levels, so skip this step for it
    and say so). It returns an `rms` value per audio channel. Negative values are dBFS: below −50 is silent,
    −30 to −10 is speech-level, above −6 is hot. Values between 0 and 1 are linear: below 0.003 is silent,

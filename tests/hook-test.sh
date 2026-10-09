@@ -64,6 +64,24 @@ expect deny "empty input is blocked"     ''
 expect ask  "malformed input still asks" 'not json "tool_name":"mcp__epiphan__batch_reboot"'
 expect deny "unreadable call is blocked" 'not json'
 expect ask "odd tool name stays valid JSON" '{"tool_name":"mcp__epiphan__evil\\\"x\\\\"}'
+# A read name with a stray character isn't the read on the list; the raw name decides, not the cleaned-up one.
+expect ask  "read name with a stray character" '{"tool_name":"mcp__epiphan__get_device_info."}'
+expect ask  "read name with a semicolon"       '{"tool_name":"mcp__epiphan__get_device_info;"}'
+# EPIPHAN_READ_ONLY with stray whitespace (easy in PowerShell) is still on.
+EPIPHAN_READ_ONLY=' 1 ' expect deny "read-only with whitespace"   '{"tool_name":"mcp__epiphan__batch_recording"}'
+EPIPHAN_READ_ONLY='TRUE ' expect deny "read-only, upper and space" '{"tool_name":"mcp__epiphan__batch_recording"}'
+EPIPHAN_READ_ONLY=' 0 ' expect ask  "read-only ' 0 ' still asks"   '{"tool_name":"mcp__epiphan__batch_recording"}'
+# Disruptive writes carry the louder warning (the same set Fleetwatch's tool_policy.yaml calls disruptive).
+disruptive() { # disruptive <tool>
+  local out
+  out=$(printf '{"tool_name":"mcp__epiphan__%s"}' "$1" | bash "$hook")
+  if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "ask" and (.hookSpecificOutput.permissionDecisionReason | startswith("DISRUPTIVE"))' >/dev/null 2>&1; then
+    ok "DISRUPTIVE warning on $1"; else bad "no DISRUPTIVE warning on $1: $out"; fi
+}
+for t in batch_reboot batch_firmware_update stop_stream_endpoint delete_cms_event delete_stream_endpoint apply_team_preset \
+         switch_device_to_cms update_cms_event cms_event_action; do disruptive "$t"; done
+out=$(printf '{"tool_name":"mcp__epiphan__batch_recording"}' | bash "$hook")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecisionReason | startswith("WRITE")' >/dev/null 2>&1; then ok "WRITE warning on batch_recording"; else bad "batch_recording warning: $out"; fi
 
 # Other Epiphan services (docs, CRM, ...) are left to normal permissions; Epiphan Edge tools are guarded under
 # any connector name, and unknown tools only on the device server itself.
@@ -121,6 +139,22 @@ redacts "stream_name field"      '{"stream_name":"FAKE20"}'
 redacts "WHIP ingest path"       '{"u":"https://whip.example/whip/endpoint/FAKE21"}'
 redacts "table with a key column" "$(printf '| Name | Stream key |\n|---|---|\n| YT | FAKE22 |')"
 redacts "non-UUID StreamID"      '{"StreamID":"live/FAKE23"}'
+# Shapes a devil's-advocate review found (v1.1.2): a Pearl publisher's "stream" field next to its url/password,
+# dotted or spaced secret names, label/value pairs, short names, /-escaped URLs and webhook paths.
+redacts "publisher stream field"   '{"url":"rtmp://a.example/live2","stream":"FAKE50","username":"","password":""}'
+redacts "Stream field, capitalized" '{"URL":"rtmp://x.example:1935/app","Stream":"FAKE51"}'
+redacts "dotted secret name"       '{"srt.passphrase":"FAKE52"}'
+redacts "dotted id/value pair"     '{"settings":[{"id":"publisher.rtmp.key","value":"FAKE53"}]}'
+redacts "name with a space"        '{"name":"Stream key","value":"FAKE54"}'
+redacts "label/value pair"         '{"label":"Stream key","value":"FAKE55"}'
+redacts "pin, pw, psk and pass"    '{"pin":"FAKE56","pw":"FAKE57","psk":"FAKE58","pass":"FAKE59"}'
+redacts "unicode-escaped rtmp url" '{"url":"rtmp://a.example/live/FAKE60"}'
+redacts "slack webhook path"       '{"hook":"https://hooks.slack.com/services/T0/B0/FAKE61"}'
+redacts "discord webhook path"     'https://discord.com/api/webhooks/123/FAKE62'
+for t in '{"record":true,"stream":true}' '{"stream":"rtmp"}' '{"stream":"Program","name":"Stream 1"}'; do
+  out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | bash "$redact")
+  if [ -z "$out" ]; then ok "keeps a stream flag or name: $t"; else bad "masked a plain stream field: $t -> $out"; fi
+done
 out=$(printf '%s' '{"tool_name":"mcp__epiphan__get_device_info","tool_response":{"t":"| Room | Status |\n| Hall | online |","u":"https://panopto.example.edu/Panopto/Pages/Viewer.aspx"}}' | bash "$redact")
 if [ -z "$out" ]; then ok "leaves ordinary tables and links alone"; else bad "changed an ordinary table or link: $out"; fi
 redacts "pwd and credentials"    '{"pwd":"FAKE17","credentials":"FAKE18"}'
@@ -142,7 +176,8 @@ for b in bash cat grep head printf mktemp rm sleep sed tr wc; do p=$(command -v 
 if PATH="$nojq" "$nojq/bash" -c 'exit 0' 2>/dev/null; then
   for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}' \
            '"api_key=FAKE"' '"key: FAKE"' '"sent Basic RkFLRUJBU0lD"' '"stream%20key=FAKE"' '{"apiKey":"FAKE"}' '"ftp://u:FAKE@h/x"' \
-           '"401 for sk-ant-api03-FAKE"'; do
+           '"401 for sk-ant-api03-FAKE"' '{"url":"https://a.example/live/FAKE"}' '"https://hooks.slack.com/services/T0/B0/FAKE"' \
+           '{"srt.passphrase":"FAKE"}' '{"id":"publisher.rtmp.key","value":"FAKE"}' '{"pin":"FAKE"}'; do
     out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | PATH="$nojq" "$nojq/bash" "$redact")
     case "$out" in *withheld*) ok "no jq: withholds $t" ;; *) bad "no jq: passed $t" ;; esac
   done
@@ -279,16 +314,16 @@ ok "CLAUDE.md write list checked"
 nonread=$(jq '[.permissions.allow[] | select(test("__(get_|kb_)") | not)] | length' .claude/settings.json)
 if [ "$nonread" -eq 0 ]; then ok "allow list is reads only"; else bad "$nonread non-read tools in allow"; fi
 
-# Both hooks use the same matcher: any server or connector with "epiphan" in its name, any case.
-# Claude Code evaluates it as a JavaScript regex; jq's Oniguruma engine below gives the same answers for
-# this pattern (plain character classes, no lookarounds), so these checks hold for both.
+# Both hooks use the same matcher: any server or connector with "epiphan" in its name, any case, any characters.
+# Claude Code evaluates it as a JavaScript regex; jq's Oniguroma engine below supports the same syntax (character
+# classes and a negative lookahead), so these checks hold for both.
 matcher=$(jq -r '.hooks.PreToolUse[0].matcher' .claude/settings.json | tr -d '\r')
 post=$(jq -r '.hooks.PostToolUse[0].matcher' .claude/settings.json | tr -d '\r')
 if [ "$matcher" = "$post" ]; then ok "PreToolUse and PostToolUse matchers agree"; else bad "PreToolUse and PostToolUse matchers differ"; fi
 for n in epiphan Epiphan epiphan-eu epiphan_eu plugin_av_epiphan claude_ai_Epiphan claude_ai_Epiphan_MCP claude_ai_epiphan_mcp \
          claude_ai_EPIPHAN_MCP claude_ai_Epiphan_Cloud claude_ai_EpiphanCloud claude_ai_Epiphan-Cloud claude_ai_My_Epiphan_Cloud \
          claude_ai_Epiphan_Edge claude_ai_Epiphan_Cloud_EU claude_ai_Epiphan_Pearl claude_ai_TEST_Epiphan_Cloud \
-         claude_ai_Lab_Epiphan_Cloud; do
+         claude_ai_Lab_Epiphan_Cloud epiphan.eu 'claude_ai_Epiphan_Cloud_(EU)' 'claude_ai_Epiphan Cloud'; do
   if jq -en --arg n "mcp__${n}__batch_reboot" --arg m "$matcher" '$n | test($m)' >/dev/null; then ok "matcher guards $n"; else bad "matcher misses $n"; fi
 done
 for n in claude_ai_Gmail__search claude_ai_Slack__send claude_ai_Gmail__search_epiphan_threads; do
@@ -299,6 +334,14 @@ done
 if grep -l 'allowed-tools:.*__\(batch_\|start_\|stop_\|create_\|update_\|delete_\|apply_\|switch_\|cms_event_action\|confirm_\)' .claude/commands/*.md; then
   bad "a command pre-approves a write tool"
 else ok "no command pre-approves a write tool"; fi
+# A Bash wildcard like Bash(date*) also matches "date -f <file>", which would read any file into context.
+if grep -l 'allowed-tools:.*Bash([^)]*\*' .claude/commands/*.md; then bad "a command pre-approves a Bash wildcard"
+else ok "no command pre-approves a Bash wildcard"; fi
+# Commands that look at a preview frame must not read a stream key off the screen.
+for c in view-room check-room; do
+  if grep -q "don't transcribe it" ".claude/commands/$c.md"; then ok "/$c won't transcribe on-screen keys"
+  else bad "/$c lacks the on-screen key rule"; fi
+done
 for f in .claude/commands/*.md; do
   c=$(basename "$f" .md)
   for doc in README.md CLAUDE.md; do
