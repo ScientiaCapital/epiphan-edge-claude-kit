@@ -3,8 +3,10 @@
 # write guard; like the guard, it acts on the Epiphan Edge tools it knows and on the device server itself,
 # and leaves other Epiphan services alone).
 # This hook rewrites the tool's output before Claude sees it:
-#   - fields named like a secret (StreamingKey, stream_key, password, passphrase, token, ...) and
-#     {"id"/"name"/"key": "<secret name>", "value": ...} pairs get the value "[redacted]";
+#   - fields named like a secret (StreamingKey, stream_key, srt.passphrase, password, pin, token, ...) and
+#     {"id"/"name"/"key"/"label"/"field": "<secret name>", "value": ...} pairs get the value "[redacted]";
+#     a publisher's "stream" field (Pearl's name for the RTMP stream key) is masked when it sits next to a
+#     url, username or password field;
 #   - streaming URLs (rtmp*, srt, rtsp, rist) keep only scheme + host; http(s) URLs lose user:password@
 #     and their ?query;
 #   - "stream key: abc", "api_key=abc", "Bearer abc" style text is masked too, and so is user:password@ in
@@ -45,14 +47,15 @@ esac
 
 # Fast path: most outputs (device lists, status) mention nothing secret-like. Skip jq for them.
 # (grep exits 1 for "no match"; anything else, like an error, goes on to the full check.)
-printf '%s' "$input" | grep -qiE 'key|pass|pwd|secret|token|auth|cred|bearer|basic|sk-ant-|stream[ _-]?(id|name)|:\\*/'
+printf '%s' "$input" | grep -qiE 'key|pass|pwd|pin|psk|pw"|secret|token|auth|cred|bearer|basic|sk-ant-|stream|webhook|:\\*/|u002f|%2f'
 [ $? -eq 1 ] && exit 0
 
 if ! command -v jq >/dev/null 2>&1; then
-  # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "pwd": ...),
-  # "stream key: ...", "api_key=..." or "Bearer ..." text, an sk-ant-... key, a streaming URL with a path, or any URL with user:password@ or a
-  # ?query. Words like "Keynote" in an event title don't count.
-  printf '%s' "$input" | grep -qiE '"[A-Za-z_-]*(key|stream_?name|stream_?id|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|(stream([ _-]|%20)?(key|name)|password|passphrase|passwd|pwd|secret|token|authorization|(^|[^a-z0-9])key)["'\'']?[[:space:]]*[:=]|bearer[[:space:]]|basic[[:space:]]+[A-Za-z0-9+/=]{8}|(^|[^A-Za-z0-9_])sk-ant-|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
+  # Without jq, withhold anything secret-shaped: a field named like a secret ("StreamingKey": ..., "srt.passphrase": ...,
+  # "pin": ...), an id/name/label whose value names a secret ("id": "publisher.rtmp.key"), "stream key: ...",
+  # "api_key=..." or "Bearer ..." text, an sk-ant-... key, a streaming URL with a path, an https URL with an ingest,
+  # live or webhook path, or any URL with user:password@ or a ?query. Words like "Keynote" in an event title don't count.
+  printf '%s' "$input" | grep -qiE '"[A-Za-z0-9_. /:-]*(key|stream[ _-]?name|stream[ _-]?id|password|passphrase|passwd|pwd|pw|pin|psk|pass|secret|token|authorization|auth|credentials?)\\*"[[:space:]]*:|"(id|name|key|label|field)\\*"[[:space:]]*:[[:space:]]*\\*"[^"]*(key|password|passphrase|passwd|pwd|pin|psk|secret|token)\\*"|(stream([ _-]|%20)?(key|name)|password|passphrase|passwd|pwd|secret|token|authorization|(^|[^a-z0-9])(key|pin|psk|pass|pw))["'\'']?[[:space:]]*[:=]|bearer[[:space:]]|basic[[:space:]]+[A-Za-z0-9+/=]{8}|(^|[^A-Za-z0-9_])sk-ant-|(rtmp[a-z]*|srt|rtsp|rist):(\\*/){2}[^"[:space:]]*(\\*/|\?)|:(\\*/){2}[^/"[:space:]]*@|https?:(\\*/){2}[^"[:space:]]*(\?|whip|whep|ingest|publish|upload|live|stream|rtmp|srt|push|broadcast|webhook|hooks\.slack|discord(app)?\.com/api/webhooks)|\|[[:space:]]*(stream[ _-]?(key|name|id)|key|password|passphrase|token|secret)[[:space:]]*\|'
   [ $? -eq 1 ] && exit 0
   withhold "may contain stream keys and jq, which hides them, isn't installed (Mac: brew install jq; Linux: install the jq package; Windows: winget install jqlang.jq). Then try again"
 fi
@@ -63,11 +66,17 @@ trap 'rm -f "$tmp"' EXIT
 
 # shellcheck disable=SC2016  # $-names below are jq variables, not shell ones
 { printf '%s' "$input" 2>/dev/null; } | jq -c '
+  # Cheap string checks first: jq 1.6 compiles a regex on every test() call, and a device list has tens of
+  # thousands of keys, so the regex runs only on keys that end like a secret name.
   def secret_name:
-    type == "string"
-    and test("^(?:.*[_-])?(?:streaming_?key|stream_?key|stream_?name|api_?key|private_?key|key|password|passphrase|passwd|pwd|secret|token|authorization|auth|credentials?)$"; "i")
-    and (test("page|cursor"; "i") | not);
-  def stream_id_name: type == "string" and test("^(?:.*[_-])?stream_?id$"; "i");
+    type == "string" and (ascii_downcase as $k
+      | ($k | endswith("key") or endswith("password") or endswith("passphrase") or endswith("passwd") or endswith("pwd")
+            or endswith("pw") or endswith("pin") or endswith("psk") or endswith("pass") or endswith("secret") or endswith("token")
+            or endswith("authorization") or endswith("auth") or endswith("credential") or endswith("credentials")
+            or (endswith("name") and contains("stream")))
+      and (($k | contains("page") or contains("cursor")) | not)
+      and ($k | test("^(?:.*[_\\-. /:])?(?:streaming[ _-]?key|stream[ _-]?key|stream[ _-]?name|api[ _-]?key|private[ _-]?key|key|password|passphrase|passwd|pwd|pw|pin|psk|pass|secret|token|authorization|auth|credentials?)$")));
+  def stream_id_name: type == "string" and (ascii_downcase as $k | ($k | endswith("id") and contains("stream")) and ($k | test("^(?:.*[_\\-. /:])?stream[ _-]?id$")));
   def uuid: type == "string" and test("^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$"; "i");
   def table_col: gsub("^\\s+|\\s+$"; "") | ascii_downcase | gsub("[ -]+"; "_");
   def table_secret_col: table_col | (secret_name or stream_id_name);
@@ -97,7 +106,7 @@ trap 'rm -f "$tmp"' EXIT
   def masks: "(?:\(M))+(?![\\w/.~%+=&:@?#\\[-])";
   def thru(c): "(?:\(masks)|(?:\(M)|\(c))*)";  # a value of c characters, read through any masks in it
   def scrub_text:
-    if test("://|:\\\\/\\\\/|key|pass|pwd|secret|token|auth|cred|bearer|basic|stream|sk-ant-"; "i") | not then .
+    if test("://|:\\\\/\\\\/|key|pass|pwd|pin|psk|\\bpw\\b|secret|token|auth|cred|bearer|basic|stream|webhook|sk-ant-"; "i") | not then .
     elif length > 200000 then "[Epiphan kit: a long text value was withheld because it was too long to check for stream keys]"
     else
       (if test("\\|") then scrub_tables else . end)
@@ -107,8 +116,8 @@ trap 'rm -f "$tmp"' EXIT
       | gsub("(?<p>\\b(?:rtmp[a-z]*|srt|rtsp|rist|https?):\\\\/\\\\/)(?<h>[^\\\\\\s\"'"'"'<>]+)(?<r>\\\\/[^\\s\"'"'"'<>]*)";
            "\(.p)\(.h)\\/[redacted]"; "i")
       | gsub("(?<p>\\b(?:https?|wss?|s?ftps?)://)(?<h>[^/?#\\s\"'"'"'<>()\\[\\],@]+)(?<path>/\(thru("[^?#\\s\"'"'"'<>()\\[\\],]")))?(?<q>\\?\(thru("[^\\s\"'"'"'<>()\\[\\],]")))?";
-           "\(.p)\(.h)\(if .path == null then "" elif ((.h + .path) | test("whip|whep|ingest|publish|upload|live|stream|rtmp|srt|push|broadcast"; "i")) then "/[redacted]" else .path end)\(if .q then "?[redacted]" else "" end)"; "i")
-      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream(?:[ _-]|%20)?key|stream(?:[ _-]|%20)?name|password|passphrase|passwd|pwd|secret|client[_-]?secret|access[_-]?token|token|authorization|(?:x[_-])?api[_-]?key|private[_-]?key|key)[\"'"'"']?\\s*[:=]\\s*)(?:(?<dq>\"(?:[^\"\\\\\\n]|\\\\.)*\")|(?<sq>'"'"'(?:[^'"'"'\\\\\\n]|\\\\.)*'"'"')|(?<oq>[\"'"'"'])?(?<s>(?:bearer|basic)\\s+)?(?:\(masks)|(?:\(M)|[^\\s\"'"'"',;}\\]|])+))";
+           "\(.p)\(.h)\(if .path == null then "" elif ((.h + .path) | test("whip|whep|ingest|publish|upload|live|stream|rtmp|srt|push|broadcast|webhook|hooks\\.slack|discord(?:app)?\\.com/api/webhooks"; "i")) then "/[redacted]" else .path end)\(if .q then "?[redacted]" else "" end)"; "i")
+      | gsub("(?<k>[\"'"'"']?\\b(?:streaming[ _-]?key|stream(?:[ _-]|%20)?key|stream(?:[ _-]|%20)?name|password|passphrase|passwd|pwd|secret|client[_-]?secret|access[_-]?token|token|authorization|(?:x[_-])?api[_-]?key|private[_-]?key|pass|pin|psk|pw|key)[\"'"'"']?\\s*[:=]\\s*)(?:(?<dq>\"(?:[^\"\\\\\\n]|\\\\.)*\")|(?<sq>'"'"'(?:[^'"'"'\\\\\\n]|\\\\.)*'"'"')|(?<oq>[\"'"'"'])?(?<s>(?:bearer|basic)\\s+)?(?:\(masks)|(?:\(M)|[^\\s\"'"'"',;}\\]|])+))";
            "\(.k)\(if .dq then "\"[redacted]\"" elif .sq then "'"'"'[redacted]'"'"'" else "\(.oq // "")\(.s // "")[redacted]" end)"; "i")
       | gsub("(?<s>\\b(?:bearer|basic)\\s+)(?:\(masks)|[\\w.~+/=-]*\(M)(?:\(M)|[\\w.~+/=-])*|(?=[\\w.~+/-]*[0-9+/=])[\\w.~+/-]+=*|[\\w.~+/-]{20,}=*)";  # a token: a digit, +, / or =, or 20+ characters
            "\(.s)[redacted]"; "i")
@@ -116,7 +125,13 @@ trap 'rm -f "$tmp"' EXIT
     end;
   def redact:
     if type == "object" then
-      (if has("value") and ([.id, .name, .key] | any(secret_name or stream_id_name)) then .value |= mask else . end)
+      (if has("value") and ([.id, .name, .key, .label, .field] | any(secret_name or stream_id_name)) then .value |= mask else . end)
+      # The "stream" field of a publisher is the RTMP stream key when it sits next to url/username/password
+      # (Pearl publisher settings); a bare "stream": true flag or a stream name without a URL is left alone.
+      | (if (has("stream") or has("Stream") or has("STREAM"))
+            and ([keys_unsorted[] | ascii_downcase] | any(. == "url" or . == "username" or . == "password")) then
+           with_entries(if (.key | ascii_downcase) == "stream" and (.value | type) == "string" and .value != "" then .value |= mask else . end)
+         else . end)
       | has("value") as $pair
       | with_entries(
           if (.key | secret_name) and (($pair | not) or (.value | type) != "string" or (.value | secret_name | not)) then .value |= mask

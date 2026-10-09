@@ -1,5 +1,5 @@
 ---
-description: "Which devices are online, by group and model, and their firmware. Read only"
+description: "Show which devices are online, by group and model, and their software version. Read only"
 argument-hint: "[group name to focus on]"
 allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_system_status_for_devices
 ---

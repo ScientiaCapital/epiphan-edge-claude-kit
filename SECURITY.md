@@ -24,6 +24,10 @@ no secrets. The installer only writes:
 - the kit folder itself, plus an empty `.epiphan-kit` marker if it was downloaded without git;
 - for Europe or Australia, a per-folder `epiphan` server override in Claude Code's own config (`~/.claude.json`).
 
+It also runs Anthropic's Claude Code installer or `claude update`, and installs `jq` with Homebrew or winget
+when it can. It fetches the kit at the latest release tag, not the tip of `main`, and prints the version it
+installed (`EPIPHAN_KIT_REF` picks another tag or branch).
+
 `.claude/settings.local.json` (your personal overrides) is gitignored.
 
 ## Epiphan Edge sign-in isn't read-only
@@ -40,14 +44,21 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
   `permissions.disableBypassPermissionsMode` keeps bypass mode (which skips prompts) off in this folder.
 - `.claude/hooks/epiphan-write-guard.sh` (PreToolUse) prompts for every Epiphan Edge write tool under any
   Epiphan-named connector, and for any tool on the Edge server itself that isn't on its list of 20 reads, even
-  one named like a read (`get_*`, `kb_*`). It denies those calls in bypass mode, denies them all when
-  `EPIPHAN_READ_ONLY=1` is set, and denies calls it can't read (including a `tool_name` that isn't a string).
-  Other Epiphan services' tools are left to normal permissions.
-- `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, API keys (an Anthropic
-  `sk-ant-` key even with no label in front), `Bearer`/`Basic` credentials, `user:password@` in any URL, and
-  RTMP/SRT URL paths in tool output with `[redacted]` before the model sees them, and withholds results it
-  can't check (needs `jq`). A `[redacted]` already in the text is read as part of the value around it, so it
-  can't shield what follows.
+  one named like a read (`get_*`, `kb_*`), or a read name with a stray character in it. It denies those calls
+  in bypass mode, denies them all when `EPIPHAN_READ_ONLY` is set to anything but empty, `0`, `false`, `no`
+  or `off` (spaces and case ignored), and denies calls it can't read (including a `tool_name` that isn't a
+  string). Reboot, firmware, stop, delete, preset, CMS switch, and event edits carry a louder DISRUPTIVE
+  warning, the same set Fleetwatch's tool policy calls disruptive. Other Epiphan services' tools are left to
+  normal permissions. The hook matcher covers any server or connector name containing "epiphan", whatever
+  other characters it holds.
+- `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, PINs, API keys (an Anthropic
+  `sk-ant-` key even with no label in front), `Bearer`/`Basic` credentials, `user:password@` in any URL,
+  RTMP/SRT URL paths, https ingest, live and webhook paths, a publisher's `stream` field next to its URL, and
+  dotted or spaced secret names (`srt.passphrase`, `"Stream key"` in a name/label pair) in tool output with
+  `[redacted]` before the model sees them, and withholds results it can't check (needs `jq`). A `[redacted]`
+  already in the text is read as part of the value around it, so it can't shield what follows.
+- Commands pre-approve only the exact `date` command, never a wildcard, and tell the model not to transcribe a
+  stream key it can see in a preview frame.
 - `tests/redaction-cases.json` is a shared set of redaction cases, kept byte-identical with Fleetwatch's Python
   port, so both redactors are held to the same cases.
 - `tests/hook-test.sh` checks all of this in CI on macOS, Linux, and Windows.
@@ -55,6 +66,10 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
 Known limits, so you can judge them yourself:
 - Redaction hides secrets from the model only. Claude Code keeps the
   original result in your local session history (`~/.claude/projects`) and, if you enabled it, in telemetry.
+  In print mode, `--output-format stream-json --verbose` also writes the original MCP result to stdout as
+  `tool_use_result` metadata beside the redacted message (checked 2026-10-08: the model's message held only
+  `[redacted]`). Scripts should use the default text output or `--output-format json`, which carry the
+  answer only.
 - It recognizes the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
   with a key column, credentialed or ingest URLs). A secret written some other way may not be caught.
   Epiphan's `StreamID` (a UUID that `/stream-room` needs) is kept; any other stream ID is masked.

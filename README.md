@@ -5,7 +5,7 @@ English · [Español](README.es.md)
 [![check](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml/badge.svg)](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Talk to your Epiphan fleet in plain English, right from your terminal. This kit connects Claude Code
+Talk to your Epiphan devices in plain English, from a window on your own computer. This kit connects Claude Code
 to your Epiphan Edge account, so you can ask "What's broken?", see what a room's camera sees, and
 start a recording, with your OK before anything changes.
 
@@ -15,7 +15,7 @@ start a recording, with your OK before anything changes.
 1  Fix first    Lecture 204  Campus A  No picture from Camera 2   Next class at 2 p.m.       Check the SDI cable at the rack
 2  Fix soon     Auditorium   Campus B  Firmware one version back  4.x.5, others on 4.x.6     /fix-problem 2
 
-FYI: 2 Pearls have little local space left. That's normal when recordings upload to your CMS.
+FYI: 2 Pearls have little local space left. That's normal when recordings upload to your video platform (Panopto, Kaltura, or Edge) after each class.
 ```
 (Example output. Yours shows your own rooms.)
 
@@ -25,9 +25,9 @@ FYI: 2 Pearls have little local space left. That's normal when recordings upload
 
 ### What you need
 
-- A Mac (macOS 13+; on 13–14 the installer adds `jq` if you have Homebrew), Windows 10/11, or Linux computer
+- A Mac (macOS 13 or newer), Windows 10 or 11, or Linux computer
 - A paid Epiphan Edge account with at least one Epiphan device (such as Pearl-2, Pearl Mini, Pearl Nano,
-  Pearl Nexus, or EC20) paired to it. Looking and checking works on Edge; the commands that change things
+  Pearl Nexus, Venue, or EC20) paired to it. Looking and checking works on Edge; the commands that change things
   (`/record-room`, `/stream-room`, `/fix-problem`) need Epiphan Edge Premium.
 - A Claude account on a Pro, Max, Team, or Enterprise plan. The free plan doesn't include Claude Code.
 - Claude Code 2.1.196 or newer. The installer installs or updates it; `claude update` does it by hand.
@@ -56,36 +56,60 @@ irm https://raw.githubusercontent.com/ScientiaCapital/epiphan-edge-claude-kit/ma
 
 It installs Claude Code if you don't have it, downloads this kit into a folder called
 `epiphan-edge-claude-kit` in your home folder, and opens Claude Code there. It prints numbered steps as it
-goes, and asks one question: your Epiphan region (North America, Europe, or Australia). Pick the one you
-sign in to Epiphan Cloud on; if you're not sure, it's North America. You can read the script first:
+goes, and asks one question: where your Epiphan Edge account lives (North America, Europe, or Australia).
+Look at the web address you use to sign in to Epiphan Edge: go.epiphan.cloud is North America,
+eu.epiphan.cloud is Europe, and au.epiphan.cloud is Australia. Not sure? Pick North America. You can read
+the script first:
 [install.sh](install.sh) or [install.ps1](install.ps1).
 
 ### Step 3: Answer three questions in Claude Code
 
 1. If this is your first time using Claude Code, a browser opens. Sign in to your Claude account.
 2. "Do you trust the files in this folder?" Choose Yes.
-3. "New MCP server found: epiphan" Choose to use it. This is the connection to Epiphan Edge.
+3. "New MCP server found in this project: epiphan". This is the connection to Epiphan Edge. Press the up
+   arrow to highlight "Use this MCP server", then press `Enter`. (The highlight starts on "Continue without
+   using this MCP server", so pressing `Enter` straight away says no.)
 
 ### Step 4: Type `/connect-epiphan`
 
 Type `/connect-epiphan` and press `Enter`. Claude checks the connection. The first time, it asks you to sign
 in to Epiphan. You don't need to leave Claude:
 
-1. Type `/mcp` and press `Enter`.
-2. Pick `epiphan` with the arrow keys, press `Enter`, then choose Authenticate.
-3. A browser opens. Sign in with your Epiphan Edge account and pick the team you want Claude to see.
-4. Back in the terminal, type `/connect-epiphan` again.
+1. Type `/mcp` and press `Enter`. A list of connections opens.
+2. Use the arrow keys to pick `epiphan`, press `Enter`, then choose Authenticate (it may say Re-authenticate).
+3. A browser opens. Sign in with your Epiphan Edge account. If it asks you to pick a team, pick the one with
+   the rooms you look after. A team is the set of devices you see when you sign in to Epiphan Edge in a
+   browser; most schools have one.
+4. Back in the terminal, press `Esc` to close the list, then type `/connect-epiphan` again.
 
 When it says you're connected, type `/device-overview`.
 
-### Next time
+### Next time, or if someone set this up for you
 
 Open a terminal and type:
 ```bash
 cd ~/epiphan-edge-claude-kit
 claude
 ```
+Then type `/check-room` and the room's name.
+
 To update the kit, paste the Step 2 line again. It keeps your own files and your region.
+
+### Run it from a script
+
+The commands work without opening Claude Code, from the same folder:
+```bash
+cd ~/epiphan-edge-claude-kit
+claude -p "/find-problems"
+claude -p "/check-room Courtroom"
+claude -p "Which rooms can't record tomorrow morning?"
+```
+Sign in once in the normal way first (Step 4). Each run uses your Claude plan like any other request.
+Anything that would change a device (`/record-room`, `/stream-room`, `/fix-problem`) needs you at the
+keyboard to approve it, so from a script it's refused and nothing changes. Keep the default text output or
+`--output-format json`; `--output-format stream-json --verbose` also prints the unredacted device data as
+metadata, so don't use it for a script that others can read. For an always-on watcher that posts a digest,
+see Fleetwatch, the companion project.
 
 ### If you get stuck
 
@@ -93,10 +117,11 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 |---|---|
 | `command not found: claude` or `'claude' is not recognized` | Close the terminal, open a new one, and paste the Step 2 line again. |
 | `'irm' is not recognized` | You're in Command Prompt, not PowerShell. Open PowerShell (Step 1). |
-| `/connect-epiphan` says no Epiphan server | Type `/mcp`, choose `epiphan`, approve it, then `/connect-epiphan` again. |
-| `FORBIDDEN` or "not signed in" | Type `/mcp`, choose `epiphan`, then Authenticate (Step 4). If there's no Authenticate option, type `/exit`, run `claude mcp login epiphan`, then `claude`. |
-| Sign-in fails, or "0 devices" | Wrong region or wrong team. Paste the Step 2 line again to pick another region. To pick another team, type `/mcp`, choose `epiphan`, then Re-authenticate. |
+| `/connect-epiphan` says no Epiphan server | You chose "Continue without" at the "New MCP server found" question. Type `/mcp`, choose `epiphan`, choose Enable, press `Esc`, then `/connect-epiphan` again. |
+| `FORBIDDEN` or "not signed in" | You're not signed in to Epiphan Edge. Type `/mcp`, choose `epiphan`, then Authenticate or Re-authenticate (Step 4). If neither option is there, type `/exit`, run `claude mcp login epiphan`, then `claude`. |
+| Sign-in fails, or "0 devices" | Wrong region or wrong team (see Step 4 for what a team is). Paste the Step 2 line again to pick another region. To pick another team, type `/mcp`, choose `epiphan`, then Re-authenticate. |
 | Worked yesterday, not today | Your Epiphan sign-in expired. Type `/mcp`, choose `epiphan`, then Re-authenticate. |
+| Signed in this morning, now `FORBIDDEN` again | Someone else signed in to the same shared team. A shared team allows one sign-in at a time. Type `/mcp`, choose `epiphan`, then Re-authenticate, and agree who uses the team, or ask your Epiphan admin for a team of your own. |
 | `/start`, `/triage`, or another old command does nothing | Commands were renamed in v1.1.0 to say what they do. `/start` is now `/connect-epiphan`, `/triage` is `/find-problems`. Type `/` to see them all, or see [CHANGELOG.md](CHANGELOG.md). |
 | A change was refused | Changes need an Epiphan Edge Premium plan. The EC20 camera can't record or stream on command. |
 | `BLOCKED: ... bypass mode` | Claude is in bypass mode. Press `Shift+Tab` to leave it, then ask again. |
@@ -112,17 +137,19 @@ To update the kit, paste the Step 2 line again. It keeps your own files and your
 | Command | What it does | Changes anything? |
 |---|---|---|
 | `/connect-epiphan` | First time: signs you in to Epiphan Edge and gives a quick tour | No |
-| `/device-overview [group]` | Which devices are online, by group and model, and their firmware | No |
+| `/device-overview [group]` | Which devices are online, by group and model, and their software version (firmware) | No |
 | `/find-problems [group]` | What needs attention, in plain words, with what to fix first | No |
+| `/check-room <room>` | Is a room ready to record or stream: picture, sound, schedule | No |
 | `/upcoming-recordings [group]` | What's recording or streaming next (Panopto, Kaltura, Echo360, Opencast, Edge), and anything that could stop it | No |
 | `/view-room <room>` | Grabs the live preview and audio levels and tells you what's on screen | No |
-| `/ask-epiphan-docs <question>` | Answers from the official Epiphan knowledge base, with the page cited | No |
-| `/check-room <room>` | Is a room ready to record or stream: picture, sound, schedule | No |
+| `/ask-epiphan-docs <question>` | Answers from Epiphan's official help pages, with the page cited | No |
 | `/record-room <room> [start\|stop]` | Checks the room → your approval → records → confirms | Yes (Edge Premium) |
-| `/stream-room <room> [endpoint] [start\|stop]` | Checks the room → your approval → streams → confirms | Yes (Edge Premium) |
-| `/fix-problem <#>` | Takes an item from `/find-problems`, plans the fix, applies it with approval, re-checks | Yes (Edge Premium) |
+| `/stream-room <room> [destination] [start\|stop]` | Checks the room → your approval → streams → confirms | Yes (Edge Premium) |
+| `/fix-problem <# from /find-problems, or room + issue>` | Takes an item from `/find-problems`, plans the fix, applies it with approval, re-checks | Yes (Edge Premium) |
 
-Or just ask: "Which rooms can't record tomorrow morning?"
+Is Room 204 ready for the 2 p.m. class? Type `/check-room 204`. Or just ask: "Which rooms can't record tomorrow morning?"
+
+That's everything you need day to day. The rest of this page is for whoever looks after the install.
 
 ## How it works
 
@@ -160,8 +187,9 @@ Or just ask: "Which rooms can't record tomorrow morning?"
   result (no `jq`, an error, or more than 20 seconds), or one text value is over 200 KB, Claude gets a
   "withheld" note in its place.
   Claude Code still saves the original in your local session history (`~/.claude/projects`); hooks can't change that.
-- `jq` is needed for that. It's built into macOS 15+. The installers add it with Homebrew or winget when they
-  can; otherwise run `brew install jq` (macOS 13–14) or install your Linux distribution's `jq` package.
+- `jq` is needed for that. It's built into macOS 15 or newer. The installers add it with Homebrew or winget
+  when they can; otherwise run `brew install jq` (macOS 13–14) or download it from
+  [jqlang.github.io/jq](https://jqlang.github.io/jq), or install your Linux distribution's `jq` package.
 - Connector names: both hooks cover Epiphan Edge's tools under any connector name that contains "Epiphan"
   ([Epiphan's guide](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp) says "Epiphan MCP").
   `.claude/settings.json` pre-allows reads under `mcp__epiphan__` and `mcp__claude_ai_Epiphan_MCP__`, and asks

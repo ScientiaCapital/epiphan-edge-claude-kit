@@ -1,7 +1,7 @@
 ---
 description: "Fix one item from /find-problems, then check it worked. Changes your device (asks you first)"
 argument-hint: "<number from /find-problems, or device name + issue>"
-allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_device_info, mcp__epiphan__get_system_status_for_devices, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, mcp__epiphan__get_team_presets, mcp__epiphan__get_stream_endpoints, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_event_for_device, mcp__epiphan__kb_search, mcp__epiphan__kb_fetch, Bash(date*)
+allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_device_info, mcp__epiphan__get_system_status_for_devices, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, mcp__epiphan__get_team_presets, mcp__epiphan__get_stream_endpoints, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_event_for_device, mcp__epiphan__kb_search, mcp__epiphan__kb_fetch, Bash(date)
 ---
 
 # /fix-problem: Fix one item from /find-problems
@@ -21,7 +21,7 @@ Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware 
    | Wrong CMS | `switch_device_to_cms` |
    | Low or no local space | **Usually nothing to do.** Recordings upload to the CMS after each class. Say so calmly, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
    | No signal, unplugged input, offline unit | **No remote fix.** Say what someone on site can check, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
-3. **Safety check before any reboot, firmware update or preset**: `get_recorder_status_for_devices` (recording),
+3. **Safety check before any reboot, firmware update, preset, or CMS switch**: `get_recorder_status_for_devices` (recording),
    `get_stream_endpoints` (an endpoint with `CurrentlyStreaming` true and `LockByDevice` = this device means it's
    streaming; also check its publishers' `status.state` in the device list), and `get_current_or_next_cms_event_for_device`
    with `until` = now + 2 h (run `date`). If it's recording, streaming, or an event starts soon, say **not now**,

@@ -8,8 +8,10 @@
 #   - other Epiphan services (a connector for docs, CRM, ...) are left to Claude Code's normal permissions.
 # Disruptive writes (reboot, firmware, stop, delete, presets) get a louder warning in the approval prompt.
 # In bypass mode Claude Code skips "ask", so writes are denied there instead ("deny" still applies).
-# With EPIPHAN_READ_ONLY=1 in the environment, every one of those calls is denied instead of asked.
-# Fails closed: a call it can't read (no tool_name, or one that isn't a string) is denied, never waved through.
+# With EPIPHAN_READ_ONLY set to anything but empty, 0, false, no or off (spaces and case ignored), every one of
+# those calls is denied instead of asked.
+# Fails closed: a call it can't read (no tool_name, or one that isn't a string) is denied, never waved through,
+# and a tool name with a character outside [A-Za-z0-9_-] is never taken for a read.
 # jq is used when present; otherwise grep, which works on a stock Mac and in Git Bash on Windows.
 # Keep these lists in step with .claude/settings.json and epiphan-redact.sh (tests/hook-test.sh checks).
 READS=" get_devices_in_my_team get_device_info get_device_sources get_system_status_for_devices get_recorder_status_for_devices get_storage_status_for_devices get_channel_settings get_channel_image get_channel_audio_levels get_stream_endpoint get_stream_endpoints get_team_presets get_cms_events_for_device get_cms_events_for_devices get_current_or_next_cms_event_for_device get_current_or_next_cms_events_for_devices get_cms_names_for_devices get_devices_by_cms kb_search kb_fetch "
@@ -30,21 +32,22 @@ else
   if [ "$(printf '%s' "$input" | grep -o '"tool_name"' | wc -l)" -gt 1 ]; then unsure=1; fi
   if printf '%s' "$input" | grep -q '"permission_mode"[[:space:]]*:[[:space:]]*"bypassPermissions"'; then mode=bypassPermissions; fi
 fi
+name=${name//$'\r'/}; mode=${mode//$'\r'/}         # jq on Windows ends lines with CRLF
 server=${name%__*}; server=${server#mcp__}
-tool=${name##*__}                                   # strip the server prefix (mcp__epiphan__, mcp__claude_ai_Epiphan_MCP__, ...)
-tool=$(printf '%s' "$tool" | tr -cd 'A-Za-z0-9_-')  # it goes into JSON below; keep it to safe characters
+raw=${name##*__}                                    # strip the server prefix (mcp__epiphan__, mcp__claude_ai_Epiphan_MCP__, ...)
+tool=$(printf '%s' "$raw" | tr -cd 'A-Za-z0-9_-')   # it goes into JSON below; keep it to safe characters
 
 decide() { # decide <ask|deny> <reason>
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"%s","permissionDecisionReason":"%s"}}\n' "$1" "$2"
   exit 0
 }
-read_only() {
-  case "$(printf '%s' "${EPIPHAN_READ_ONLY:-}" | tr '[:upper:]' '[:lower:]')" in 1|true|yes|on) return 0 ;; esac
-  return 1
+read_only() { # on unless EPIPHAN_READ_ONLY is empty, 0, false, no or off (spaces and case ignored)
+  case "$(printf '%s' "${EPIPHAN_READ_ONLY:-}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')" in ''|0|false|no|off) return 1 ;; esac
+  return 0
 }
 write() {
   if read_only; then
-    decide deny "READ-ONLY: '${tool:-unknown}' changes Epiphan devices, and EPIPHAN_READ_ONLY is on, so it's blocked. To make changes (with your approval), quit Claude Code, unset EPIPHAN_READ_ONLY and start it again."
+    decide deny "READ-ONLY: '${tool:-unknown}' changes Epiphan devices, and this Claude Code session was started in read-only mode (EPIPHAN_READ_ONLY), so it's blocked. To make changes, with your approval each time, type /exit and start claude again without EPIPHAN_READ_ONLY."
   fi
   if [ "$mode" = bypassPermissions ]; then
     decide deny "BLOCKED: '${tool:-unknown}' changes Epiphan devices, and bypass mode would run it without asking. Leave bypass mode (Shift+Tab) and try again to approve it yourself."
@@ -56,13 +59,16 @@ write() {
       decide ask "DISRUPTIVE: '$tool' stops or removes something that may be live or scheduled. Check the target before approving." ;;
     apply_team_preset)
       decide ask "DISRUPTIVE: 'apply_team_preset' overwrites device settings. Presets with network or system sections can cut the device off or reset its password." ;;
+    switch_device_to_cms|update_cms_event|cms_event_action)
+      decide ask "DISRUPTIVE: '$tool' changes a scheduled event or which platform the device records for, so a class may record or stream differently than planned. Check the device and the event before approving." ;;
     *)
-      decide ask "WRITE: '$tool' changes device or team state in Epiphan Cloud." ;;
+      decide ask "WRITE: '$tool' changes a setting or starts an action on your Epiphan Edge devices." ;;
   esac
 }
 
 [ -n "$tool" ] || decide deny "BLOCKED: couldn't read this Epiphan tool call, so it isn't allowed to run. Try again."
 [ -n "$unsure" ] && write
+[ "$raw" = "$tool" ] || write                      # a name with an odd character in it isn't one of the reads
 case "$READS" in *" $tool "*) exit 0 ;; esac
 case "$WRITES" in *" $tool "*) write ;; esac
 # Anything else on the device server asks, even a new tool named like a read: only the list above is trusted.

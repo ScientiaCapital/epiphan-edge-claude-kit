@@ -1,7 +1,7 @@
 ---
-description: "What's recording or streaming next, and anything that could stop it. Read only"
+description: "Show what's recording or streaming next, and anything that could stop it. Read only"
 argument-hint: "[group name]"
-allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_events_for_devices, mcp__epiphan__get_cms_events_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, Bash(date*)
+allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_events_for_devices, mcp__epiphan__get_cms_events_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, Bash(date)
 ---
 
 # /upcoming-recordings: What's on next

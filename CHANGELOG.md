@@ -1,12 +1,53 @@
 # Changelog
 
-## Unreleased
+## v1.1.2 (2026-10-08)
 
+A devil's-advocate security review, a usability pass for people who have never used a terminal, and proof
+that the kit works end to end against a live Epiphan Edge team.
+
+Security (every item has a test in `tests/hook-test.sh`, now 300+ checks):
+- Redaction masks more shapes: a publisher's `stream` field when it sits next to `url`, `username` or
+  `password` (Pearl's name for the RTMP stream key); dotted, spaced or slashed secret names
+  (`srt.passphrase`, `"name": "Stream key"`, `"id": "publisher.rtmp.key"`), label and field value pairs;
+  `pin`, `pw`, `psk` and `pass`; `/`-escaped URLs; and Slack or Discord webhook paths. A bare
+  `"stream": true` flag or a stream name without a URL is left alone.
+- The no-jq fallback now withholds the same https live, ingest and webhook paths the jq path masks, so a
+  Mac without Homebrew gets the same protection as one with it.
+- Write guard: a read name with a stray character (`get_device_info.`) is never taken for a read;
+  `EPIPHAN_READ_ONLY` ignores spaces and case and is on for anything but empty, `0`, `false`, `no` or `off`;
+  `switch_device_to_cms`, `update_cms_event` and `cms_event_action` carry the DISRUPTIVE warning, the same
+  set Fleetwatch's tool policy calls disruptive; plainer READ-ONLY and WRITE wording.
+- The hook matcher covers any server name containing "epiphan" whatever other characters it holds
+  (`epiphan.eu`, `Epiphan Cloud (EU)`).
+- Commands pre-approve the exact `Bash(date)`, not `Bash(date*)`, which also matched `date -f <file>` and
+  could read a file into the conversation. `/view-room` and `/check-room` say when a frame shows a stream
+  key and don't transcribe it. `/fix-problem` runs its live-recording check before a CMS switch too.
 - An Anthropic API key (`sk-ant-api03-...`, `sk-ant-admin01-...`) is masked even bare, with no `key:` in
   front, for example inside an error message. Same rule as Fleetwatch. Words like "task-antenna" and
   "risk-ant-42" are left alone. The no-jq fallback withholds text with an `sk-ant-` key.
-- `tests/redaction-cases.json` is now version 2, with cases for a bare Anthropic key and for look-alike words.
-  Still byte-identical with Fleetwatch's copy.
+- `tests/redaction-cases.json` is now version 3 (44 cases). Fleetwatch's copy is updated in its own repo.
+- Repo: `main` requires one approving code-owner review. The installers fetch the latest GitHub release,
+  never the tip of `main`, print the version they installed, and take `EPIPHAN_KIT_REF` for a tag, branch
+  or commit. CI's no-git job pins to the commit under test.
+
+Easier for a first-time user:
+- The "New MCP server found in this project" question is quoted exactly, with the warning that its
+  highlight starts on "Continue without", so pressing Enter straight away says no.
+- Sign-in steps say what a team is, that the item may read Re-authenticate, and to press Esc to close the
+  list. A `FORBIDDEN`/`401` error is explained in plain words instead of printed raw, and the shared-team
+  cause (one sign-in at a time) is covered in `/connect-epiphan`, CLAUDE.md, and the stuck table.
+- Region is asked as "where your Epiphan Edge account lives", with the three web addresses to check.
+- Menu descriptions are verb-first and `/check-room` and `/view-room` read differently. The README puts
+  `/check-room` right after `/find-problems`, says "destination" instead of "endpoint", glosses firmware
+  and CMS once, and separates the day-to-day part from the install part.
+- A "Run it from a script" section: `claude -p "/find-problems"` works headless; writes are refused there.
+- Hook and installer messages drop shell jargon ("unset") and give a Mac without Homebrew a way to get `jq`.
+
+Docs:
+- Epiphan Venue (formerly Pearl Duo) is its own product line and firmware family; CLAUDE.md says how to treat it.
+- SECURITY.md lists what the installer runs and installs, and CONTRIBUTING.md covers releases and the
+  protected `main`.
+- `docs/next-sprint-proav-tech-brief.md`: starter packs per vertical and the multi-agent ProAV tech team.
 
 ## v1.1.1 (2026-10-07)
 

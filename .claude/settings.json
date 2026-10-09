@@ -94,7 +94,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
+        "matcher": "^mcp__(?:(?!__).)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](?:(?!__).)*__",
         "hooks": [
           {
             "type": "command",
@@ -105,7 +105,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^mcp__[A-Za-z0-9_-]*[Ee][Pp][Ii][Pp][Hh][Aa][Nn][A-Za-z0-9_-]*__",
+        "matcher": "^mcp__(?:(?!__).)*[Ee][Pp][Ii][Pp][Hh][Aa][Nn](?:(?!__).)*__",
         "hooks": [
           {
             "type": "command",
