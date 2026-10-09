@@ -66,6 +66,10 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
 Known limits, so you can judge them yourself:
 - Redaction hides secrets from the model only. Claude Code keeps the
   original result in your local session history (`~/.claude/projects`) and, if you enabled it, in telemetry.
+  In print mode, `--output-format stream-json --verbose` also writes the original MCP result to stdout as
+  `tool_use_result` metadata beside the redacted message (checked 2026-10-08: the model's message held only
+  `[redacted]`). Scripts should use the default text output or `--output-format json`, which carry the
+  answer only.
 - It recognizes the secret field names Epiphan uses today plus common shapes in text (`key: value`, a table
   with a key column, credentialed or ingest URLs). A secret written some other way may not be caught.
   Epiphan's `StreamID` (a UUID that `/stream-room` needs) is kept; any other stream ID is masked.

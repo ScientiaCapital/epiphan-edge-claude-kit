@@ -105,7 +105,9 @@ a full disk, `disk_space_error` or `no_storage_detected` is usually normal and *
 - Never reboot, update firmware or apply a preset on a device that's recording, streaming, or has a CMS event
   starting soon. Warn before applying a preset with `network` or `system` sections.
 - Don't offer an action the device can't do (see the EC20 list above). A refused write may mean no Premium plan:
-  show the error word for word and say so.
+  show the error word for word and say so. A write tool that is missing from the tool list altogether is
+  a different thing: a `deny` rule in this folder's settings is hiding it (see the read-only block in the
+  README). Say that, don't guess at the plan, and don't suggest re-signing in.
 - Never show stream keys, passwords, or credentialed RTMP/SRT URLs. Show scheme and host only (`rtmp://host/••••`).
 - Resolve devices by name via `get_devices_in_my_team`. Don't hardcode IDs.
 - Don't put IPs or serial numbers on screen unless the user asks.
