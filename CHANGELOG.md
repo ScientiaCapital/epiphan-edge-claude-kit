@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.3 (2026-10-09)
 
 Audit of CLAUDE.md and README.md against the code (every claim checked by two reviewers).
 
