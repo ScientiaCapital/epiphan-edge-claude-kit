@@ -32,6 +32,7 @@ else
   if [ "$(printf '%s' "$input" | grep -o '"tool_name"' | wc -l)" -gt 1 ]; then unsure=1; fi
   if printf '%s' "$input" | grep -q '"permission_mode"[[:space:]]*:[[:space:]]*"bypassPermissions"'; then mode=bypassPermissions; fi
 fi
+name=${name//$'\r'/}; mode=${mode//$'\r'/}         # jq on Windows ends lines with CRLF
 server=${name%__*}; server=${server#mcp__}
 raw=${name##*__}                                    # strip the server prefix (mcp__epiphan__, mcp__claude_ai_Epiphan_MCP__, ...)
 tool=$(printf '%s' "$raw" | tr -cd 'A-Za-z0-9_-')   # it goes into JSON below; keep it to safe characters

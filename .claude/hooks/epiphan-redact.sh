@@ -66,11 +66,17 @@ trap 'rm -f "$tmp"' EXIT
 
 # shellcheck disable=SC2016  # $-names below are jq variables, not shell ones
 { printf '%s' "$input" 2>/dev/null; } | jq -c '
+  # Cheap string checks first: jq 1.6 compiles a regex on every test() call, and a device list has tens of
+  # thousands of keys, so the regex runs only on keys that end like a secret name.
   def secret_name:
-    type == "string"
-    and test("^(?:.*[_\\-. /:])?(?:streaming[ _-]?key|stream[ _-]?key|stream[ _-]?name|api[ _-]?key|private[ _-]?key|key|password|passphrase|passwd|pwd|pw|pin|psk|pass|secret|token|authorization|auth|credentials?)$"; "i")
-    and (test("page|cursor"; "i") | not);
-  def stream_id_name: type == "string" and test("^(?:.*[_\\-. /:])?stream[ _-]?id$"; "i");
+    type == "string" and (ascii_downcase as $k
+      | ($k | endswith("key") or endswith("password") or endswith("passphrase") or endswith("passwd") or endswith("pwd")
+            or endswith("pw") or endswith("pin") or endswith("psk") or endswith("pass") or endswith("secret") or endswith("token")
+            or endswith("authorization") or endswith("auth") or endswith("credential") or endswith("credentials")
+            or (endswith("name") and contains("stream")))
+      and (($k | contains("page") or contains("cursor")) | not)
+      and ($k | test("^(?:.*[_\\-. /:])?(?:streaming[ _-]?key|stream[ _-]?key|stream[ _-]?name|api[ _-]?key|private[ _-]?key|key|password|passphrase|passwd|pwd|pw|pin|psk|pass|secret|token|authorization|auth|credentials?)$")));
+  def stream_id_name: type == "string" and (ascii_downcase as $k | ($k | endswith("id") and contains("stream")) and ($k | test("^(?:.*[_\\-. /:])?stream[ _-]?id$")));
   def uuid: type == "string" and test("^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$"; "i");
   def table_col: gsub("^\\s+|\\s+$"; "") | ascii_downcase | gsub("[ -]+"; "_");
   def table_secret_col: table_col | (secret_name or stream_id_name);
@@ -122,7 +128,8 @@ trap 'rm -f "$tmp"' EXIT
       (if has("value") and ([.id, .name, .key, .label, .field] | any(secret_name or stream_id_name)) then .value |= mask else . end)
       # The "stream" field of a publisher is the RTMP stream key when it sits next to url/username/password
       # (Pearl publisher settings); a bare "stream": true flag or a stream name without a URL is left alone.
-      | (if ([keys_unsorted[] | ascii_downcase] | any(. == "url" or . == "username" or . == "password")) then
+      | (if (has("stream") or has("Stream") or has("STREAM"))
+            and ([keys_unsorted[] | ascii_downcase] | any(. == "url" or . == "username" or . == "password")) then
            with_entries(if (.key | ascii_downcase) == "stream" and (.value | type) == "string" and .value != "" then .value |= mask else . end)
          else . end)
       | has("value") as $pair
