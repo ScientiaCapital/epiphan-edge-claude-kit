@@ -26,4 +26,4 @@ If the target is an EC20, say so and stop.
 5. **Verify**: `get_stream_endpoint` for this endpoint: `CurrentlyStreaming` should now be true (start) or false
    (stop). For `start`, one `get_channel_image` shows the picture going out is live. If the state hasn't changed
    yet, re-read once more; don't loop. Report what you actually saw.
-6. **Rollback**: print the one-line opposite command (e.g. `/stream-room <room> <endpoint> stop`).
+6. **Rollback**: print the one-line opposite command (e.g. `/stream-room <room> <destination> stop`).

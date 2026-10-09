@@ -16,7 +16,7 @@ If the target is an EC20, say so and stop.
    If the verdict is **Not ready**, stop here and say why. Don't offer to "try anyway".
 2. **Show the call** before making it, as a code block: `batch_recording` with the real args from its schema,
    targeting only the channel device ID `<device_id>-<channel_id>` the user asked for. Never add other devices.
-   If a CMS event is about to start on this channel, warn that a manual recording may collide with it.
+   If a scheduled event is about to start on this channel, warn that a manual recording may collide with it.
 3. **Run it.** Claude Code will ask the user to approve. If they decline, stop and say nothing changed.
    `batch_recording` returns a map of channel device ID → error; an empty map means success. Show any entry
    word for word. If the server refuses the whole call, show its error word for word; a permission or plan

@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+Audit of CLAUDE.md and README.md against the code (every claim checked by two reviewers).
+
+- CLAUDE.md: the read list is written out in full (the old `(s)` shorthand named a tool that doesn't exist)
+  and a test now checks it; reads are auto-allowed under two prefixes, not every prefix; the guard's scope
+  and the redactor's scope are described as they are; BLOCKED's second meaning (an unreadable call) is covered.
+- Two rules that could have caused harm: never send a `[redacted]` value in a write (update only the fields
+  that change; a new destination gets its key from the user), and treat FORBIDDEN/401 as "not signed in" only
+  on a read, so a write refused for plan or role reasons is shown word for word. Also: always name the
+  channel in `batch_recording`; the safety check covers the video-platform switch and uses a 2 hour window;
+  deleting an event is called out as permanent; a `no_storage_detected` device with a class in the next
+  24 hours is Fix first, not an FYI (find-problems and upcoming-recordings updated to match).
+- README: re-running the installer asks the region again (it doesn't keep it); the read-only switch is any
+  value but 0/false/no/off, and the PowerShell line sets it for the whole window; the read-only paragraph
+  no longer claims to cover every connector name; the withheld note only applies to secret-looking results;
+  the ask list names stream destinations and the CMS switch; command rows carry the same argument hints as
+  the command files; the stuck table covers the unreadable-call BLOCKED message; "Claude Code 2.1.196" (never
+  justified) is now "a current version"; smaller wording fixes. README.es.md mirrored.
+- Command files say "video platform" and "destination" where the user will read them.
+
 ## v1.1.2 (2026-10-08)
 
 A devil's-advocate security review, a usability pass for people who have never used a terminal, and proof
