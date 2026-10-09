@@ -19,7 +19,7 @@ Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware 
    | Device hung / stale state on an online unit | `batch_reboot` |
    | Wrong or missing config | `apply_team_preset` (only a preset whose `device_model` matches the device) |
    | Wrong CMS | `switch_device_to_cms` |
-   | Low or no local space | **Usually nothing to do.** Recordings upload to the CMS after each class. Say so calmly, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
+   | Low or no local space | **Usually nothing to do.** Recordings upload to the video platform after each class. Say so calmly, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
    | No signal, unplugged input, offline unit | **No remote fix.** Say what someone on site can check, cite a KB page (`kb_search`; respect `low_confidence`), and stop. |
 3. **Safety check before any reboot, firmware update, preset, or CMS switch**: `get_recorder_status_for_devices` (recording),
    `get_stream_endpoints` (an endpoint with `CurrentlyStreaming` true and `LockByDevice` = this device means it's
@@ -34,5 +34,5 @@ Requires an **Epiphan Edge Premium** plan. On an EC20, only reboot and firmware 
    team isn't on Edge Premium.
 6. **Verify**: re-read the device (firmware version, warnings, status). Reboots and updates take minutes, so if
    it's still offline, say so and suggest re-running `/fix-problem` or `/device-overview` later rather than polling in a loop.
-7. **Rollback**: for a preset or CMS switch, name the previous preset or CMS so it can be put back. A reboot
+7. **Rollback**: for a preset or CMS switch, name the previous preset or video platform so it can be put back. A reboot
    or firmware update has no rollback. Say so.

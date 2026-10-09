@@ -311,6 +311,12 @@ for w in $settings; do
   esac
 done
 ok "CLAUDE.md write list checked"
+# CLAUDE.md's "Read" paragraph must name every read in settings.json, written out in full (no "(s)" shorthand).
+reads=$(awk '/^\*\*Read/{f=1} f&&/^$/{exit} f' CLAUDE.md)
+for r in $(jq -r '.permissions.allow[] | select(startswith("mcp__epiphan__")) | sub("mcp__epiphan__"; "")' .claude/settings.json | tr -d '\r'); do
+  case "$reads" in *"\`$r\`"*) ;; *) bad "CLAUDE.md read list is missing $r" ;; esac
+done
+ok "CLAUDE.md read list checked"
 nonread=$(jq '[.permissions.allow[] | select(test("__(get_|kb_)") | not)] | length' .claude/settings.json)
 if [ "$nonread" -eq 0 ]; then ok "allow list is reads only"; else bad "$nonread non-read tools in allow"; fi
 

@@ -1,7 +1,7 @@
 ---
 description: "Check every device for problems and list what to fix first. Read only"
 argument-hint: "[group name]"
-allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_system_status_for_devices, mcp__epiphan__kb_search, mcp__epiphan__kb_fetch
+allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_system_status_for_devices, mcp__epiphan__get_current_or_next_cms_events_for_devices, mcp__epiphan__kb_search, mcp__epiphan__kb_fetch
 ---
 
 # /find-problems: What needs attention
@@ -14,7 +14,10 @@ warnings are routine, so keep it calm.
    Also flag **stale state**: devices that are `offline` while recording_status says recording.
 2. **Storage is a note, not a problem.** Pearls on a CMS record locally and upload after each class, so
    `disk_space_error` and `no_storage_detected` don't go in the numbered list. Count those devices for the
-   FYI line in step 6. Don't call `get_storage_status_for_devices` here.
+   FYI line in step 6. Don't call `get_storage_status_for_devices` here. One exception: a device with
+   `no_storage_detected` has nowhere to record, so if any device has that warning, make one
+   `get_current_or_next_cms_events_for_devices` call for those devices with `until` = now + 24 h, and put each
+   one that has an event in the table as **Fix first** ("Room 204 has no storage; its 2 p.m. class won't record").
 3. For online devices, one batched call each (not per device):
    - `get_recorder_status_for_devices`: the recording state per channel, for the stale-state check above.
    - `get_system_status_for_devices`: flag sustained high CPU load or temperature, and an uptime that started

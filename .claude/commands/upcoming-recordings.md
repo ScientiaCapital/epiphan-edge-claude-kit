@@ -16,8 +16,10 @@ Scope: `$ARGUMENTS` (default: whole team). Follow the **Tone** and **Storage** r
    opencast, epiphan), event title, start → end (user's timezone), and record/stream.
 4. **Worth a look**: note events on devices that are offline, or have no signal on the event's channels.
    Say it plainly ("Room 204 is offline; its 2 p.m. class won't record unless it's back by then").
-   Storage on its own is **not** a reason: Pearls upload to the CMS after each class. Only for a device with a
-   `disk_space_error` warning, check whether this one event is longer than the space left: free GB from
+   Storage on its own is **not** a reason: Pearls upload to the video platform after each class. A device with
+   `no_storage_detected` has nowhere to record, so its events are worth a look ("Room 204 has no storage; its
+   2 p.m. class won't record"). Only for a device with a `disk_space_error` warning, check whether this one
+   event is longer than the space left: free GB from
    `get_storage_status_for_devices`, and the rate from `encoder.vbitrate` + `encoder.audio_bitrate` (kbps, from
    `get_channel_settings`) across the event's recording channels. If vbitrate is `auto`, use W×H×FPS×0.09 bps,
    or ×0.4 for MJPEG (÷1000 for kbps). Mention it only if the event is longer than the space left:

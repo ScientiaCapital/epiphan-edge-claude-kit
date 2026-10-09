@@ -15,7 +15,7 @@ una sala e iniciar una grabación, siempre con tu visto bueno antes de cambiar a
 1  Fix first    Lecture 204  Campus A  No picture from Camera 2   Next class at 2 p.m.       Check the SDI cable at the rack
 2  Fix soon     Auditorium   Campus B  Firmware one version back  4.x.5, others on 4.x.6     /fix-problem 2
 
-FYI: 2 Pearls have little local space left. That's normal when recordings upload to your video platform (Panopto, Kaltura, or Edge) after each class.
+FYI: 2 Pearls have little or no local space left. That's normal when recordings upload to your video platform (Panopto, Kaltura, or Edge) after each class.
 ```
 (Ejemplo de salida. La tuya muestra tus propias salas).
 
@@ -30,7 +30,7 @@ FYI: 2 Pearls have little local space left. That's normal when recordings upload
   Pearl Nano, Pearl Nexus, Venue o EC20). Consultar y revisar funciona con Edge; los comandos que cambian algo
   (`/record-room`, `/stream-room`, `/fix-problem`) necesitan Epiphan Edge Premium.
 - Una cuenta de Claude con plan Pro, Max, Team o Enterprise. El plan gratuito no incluye Claude Code.
-- Claude Code 2.1.196 o más reciente. El instalador lo instala o lo actualiza; `claude update` lo hace a mano.
+- Una versión actual de Claude Code. El instalador lo instala o lo actualiza; `claude update` lo hace a mano.
 
 ### Paso 1: Abre una terminal
 
@@ -54,9 +54,10 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/ScientiaCapital/epiphan-edge-claude-kit/main/install.ps1 | iex
 ```
 
-Instala Claude Code si no lo tienes, descarga este kit en una carpeta llamada `epiphan-edge-claude-kit`
-dentro de tu carpeta personal y abre Claude Code ahí. Va mostrando pasos numerados y te hace una sola
-pregunta: dónde está tu cuenta de Epiphan Edge (North America, Europe o Australia). Fíjate en la dirección
+Instala o actualiza Claude Code (y en Windows, Git for Windows), agrega `jq` cuando puede, descarga la
+última versión publicada de este kit en una carpeta llamada `epiphan-edge-claude-kit` dentro de tu carpeta
+personal, muestra qué versión instaló y abre Claude Code ahí. (Si no puede consultar la última versión
+publicada, lo dice y usa los archivos más recientes de `main`.) Va mostrando pasos numerados y te hace una sola pregunta: dónde está tu cuenta de Epiphan Edge (North America, Europe o Australia). Fíjate en la dirección
 web que usas para iniciar sesión en Epiphan Edge: go.epiphan.cloud es North America, eu.epiphan.cloud es
 Europe y au.epiphan.cloud es Australia. ¿No estás seguro? Elige North America. Puedes leer el script
 antes:
@@ -95,7 +96,8 @@ claude
 ```
 Luego escribe `/check-room` y el nombre de la sala.
 
-Para actualizar el kit, vuelve a pegar la línea del Paso 2. Conserva tus propios archivos y tu región.
+Para actualizar el kit a la última versión publicada, vuelve a pegar la línea del Paso 2. Conserva los
+archivos que agregaste y vuelve a preguntar tu región, así que elige la misma (Enter elige North America).
 
 ### Ejecútalo desde un script
 
@@ -106,13 +108,13 @@ claude -p "/find-problems"
 claude -p "/check-room Courtroom"
 claude -p "Which rooms can't record tomorrow morning?"
 ```
-Primero inicia sesión una vez de la forma normal (Paso 4). Cada ejecución usa tu plan de Claude como
+Primero inicia sesión una vez de la forma normal (Pasos 3 y 4). Cada ejecución usa tu plan de Claude como
 cualquier otra solicitud. Todo lo que cambiaría un dispositivo (`/record-room`, `/stream-room`,
 `/fix-problem`) necesita que estés en el teclado para aprobarlo, así que desde un script se rechaza y nada
 cambia. Quédate con la salida de texto predeterminada o con `--output-format json`;
 `--output-format stream-json --verbose` también imprime los datos del dispositivo sin censurar como
 metadatos, así que no lo uses en un script que otras personas puedan leer. Para un vigilante siempre activo
-que publica un resumen, consulta Fleetwatch, el proyecto complementario.
+que publica un resumen, consulta el proyecto complementario, Fleetwatch, cuando se publique.
 
 ### Si te atoras
 
@@ -125,11 +127,12 @@ que publica un resumen, consulta Fleetwatch, el proyecto complementario.
 | Falla el inicio de sesión, o "0 devices" | Región o equipo equivocados (consulta el Paso 4 para saber qué es un equipo). Vuelve a pegar la línea del Paso 2 para elegir otra región. Para elegir otro equipo, escribe `/mcp`, elige `epiphan` y luego Re-authenticate. |
 | Ayer funcionaba y hoy no | Tu sesión de Epiphan expiró. Escribe `/mcp`, elige `epiphan` y luego Re-authenticate. |
 | Iniciaste sesión en la mañana y ahora sale `FORBIDDEN` otra vez | Otra persona inició sesión en el mismo equipo compartido. Un equipo compartido permite una sola sesión a la vez. Escribe `/mcp`, elige `epiphan` y luego Re-authenticate, y pónganse de acuerdo sobre quién usa el equipo, o pídele a tu administrador de Epiphan un equipo propio. |
-| `/start`, `/triage` u otro comando anterior no hace nada | En la v1.1.0 los comandos cambiaron de nombre para decir lo que hacen. `/start` ahora es `/connect-epiphan` y `/triage` es `/find-problems`. Escribe `/` para verlos todos, o consulta [CHANGELOG.md](CHANGELOG.md). |
+| `/start`, `/triage` u otro comando anterior no hace nada | En la v1.1.0 los comandos cambiaron de nombre para decir lo que hacen. `/start` ahora es `/connect-epiphan`, `/triage` es `/find-problems`, y `/schedule` ahora abre el programador propio de Claude Code (la versión del kit es `/upcoming-recordings`). Escribe `/` para verlos todos, o consulta [CHANGELOG.md](CHANGELOG.md). |
 | Se rechazó un cambio | Los cambios necesitan un plan Epiphan Edge Premium. La cámara EC20 no puede grabar ni transmitir por comando. |
 | `BLOCKED: ... bypass mode` | Claude está en modo bypass. Presiona `Shift+Tab` para salir de él y vuelve a pedirlo. |
-| `READ-ONLY: ...` | Claude Code se inició con `EPIPHAN_READ_ONLY=1`. Para hacer un cambio (con tu aprobación), cierra y vuelve a iniciar `claude` sin esa variable. |
-| `[Epiphan kit: this result was withheld ...]` | Instala `jq` (consulta Modelo de seguridad), o pregunta por menos dispositivos a la vez. |
+| `BLOCKED: couldn't read this Epiphan tool call` | Vuelve a pedirlo. Si se repite, abre un issue. |
+| `READ-ONLY: ...` | Claude Code se inició en modo de solo lectura (`EPIPHAN_READ_ONLY` está definida). Para hacer un cambio, con tu aprobación, escribe `/exit`, abre una ventana de terminal nueva e inicia `claude` ahí. |
+| `[Epiphan kit: ... withheld ...]` | Instala `jq` (consulta Modelo de seguridad), o pregunta por menos dispositivos a la vez. |
 | `already exists but isn't this kit` | Tienes otra carpeta con el mismo nombre. Cámbiale el nombre y vuelve a pegar la línea del Paso 2. |
 | Cualquier otra cosa | Ejecuta `claude doctor`, o [abre un issue](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/issues). |
 
@@ -142,11 +145,11 @@ que publica un resumen, consulta Fleetwatch, el proyecto complementario.
 | `/connect-epiphan` | La primera vez: inicia tu sesión en Epiphan Edge y te da un recorrido rápido | No |
 | `/device-overview [group]` | Qué dispositivos están en línea, por grupo y modelo, y su versión de software (firmware) | No |
 | `/find-problems [group]` | Qué necesita atención, en palabras sencillas, con lo que hay que arreglar primero | No |
-| `/check-room <room>` | Si una sala está lista para grabar o transmitir: imagen, sonido, horario | No |
+| `/check-room <room> [record\|stream] [channel]` | Si una sala está lista para grabar o transmitir: imagen, sonido, horario | No |
 | `/upcoming-recordings [group]` | Qué se va a grabar o transmitir (Panopto, Kaltura, Echo360, Opencast, Edge) y cualquier cosa que pueda impedirlo | No |
-| `/view-room <room>` | Toma la vista previa en vivo y los niveles de audio, y te dice qué hay en pantalla | No |
-| `/ask-epiphan-docs <question>` | Responde con las páginas de ayuda oficiales de Epiphan y cita la página | No |
-| `/record-room <room> [start\|stop]` | Revisa la sala → tu aprobación → graba → confirma | Sí (Edge Premium) |
+| `/view-room <room> [channel]` | Toma la vista previa en vivo y los niveles de audio, y te dice qué hay en pantalla | No |
+| `/ask-epiphan-docs <question> [model]` | Responde con las páginas de ayuda oficiales de Epiphan y cita la página | No |
+| `/record-room <room> [start\|stop] [channel]` | Revisa la sala → tu aprobación → graba → confirma | Sí (Edge Premium) |
 | `/stream-room <room> [destination] [start\|stop]` | Revisa la sala → tu aprobación → transmite → confirma | Sí (Edge Premium) |
 | `/fix-problem <# from /find-problems, or room + issue>` | Toma un punto de `/find-problems` (o una sala y su problema), planea el arreglo, lo aplica con tu aprobación y vuelve a revisar | Sí (Edge Premium) |
 
@@ -180,22 +183,24 @@ Eso es todo lo que necesitas en el día a día. El resto de esta página es para
   que tenga el rol más bajo que permita tu equipo.
 - Las lecturas se ejecutan sin preguntar. Las 20 herramientas de lectura que Epiphan Edge tiene hoy están
   permitidas en `.claude/settings.json`.
-- Toda escritura pregunta antes. Grabación, transmisión, eventos de CMS, presets, reinicios y firmware están en
-  `permissions.ask`. Un hook (`.claude/hooks/epiphan-write-guard.sh`) también obliga a preguntar en cada
+- Toda escritura pregunta antes. Grabación, transmisión, destinos de transmisión, eventos de CMS y el cambio de CMS, presets,
+  reinicios y firmware están en `permissions.ask`. Un hook (`.claude/hooks/epiphan-write-guard.sh`) también obliga a preguntar en cada
   herramienta de escritura de Epiphan Edge con cualquier nombre de conector, y en cualquier herramienta del
   propio servidor de Edge que no esté en la lista de lectura (incluso una nueva con nombre de lectura), y
-  agrega una advertencia más visible a reinicios, actualizaciones de firmware, presets, detenciones y
-  eliminaciones. Una llamada que el hook no puede leer se bloquea.
+  agrega una advertencia más visible a reinicios, actualizaciones de firmware, presets, detenciones,
+  eliminaciones y cambios a eventos programados o a la plataforma en la que graba un dispositivo. Una llamada
+  que el hook no puede leer se bloquea.
 - El modo bypass está desactivado en esta carpeta. `.claude/settings.json` define
   `disableBypassPermissionsMode`, así que `--dangerously-skip-permissions` inicia Claude en modo normal aquí,
   y toda escritura sigue preguntando. Si el modo bypass llegara a estar activo, el hook bloquea las escrituras
-  de Epiphan. Para permitir el modo bypass, quita esa línea de tu copia.
+  de Epiphan. Para permitir el modo bypass, quita esa línea de tu copia; la próxima actualización puede deshacerlo o detenerse con un mensaje.
 - Las claves de transmisión (stream keys) se ocultan al agente. Un segundo hook
   (`.claude/hooks/epiphan-redact.sh`) reemplaza claves, contraseñas y la ruta de cualquier URL RTMP/SRT con
   `[redacted]` antes de que Claude vea el resultado. Lee el JSON en lugar de buscar patrones: unos cuantos MB
   de datos de dispositivos tardan segundos. Es de mejor esfuerzo: conoce los nombres de campo que Epiphan usa
-  hoy. Si no puede revisar un resultado (sin `jq`, un error, o más de 20 segundos), o un valor de texto pasa
-  de 200 KB, Claude recibe en su lugar una nota de "withheld" (retenido).
+  hoy. Si un resultado parece contener un secreto y no se puede revisar (sin `jq`, un error, o más de 20
+  segundos), Claude recibe en su lugar una nota de "withheld" (retenido). Un solo valor de texto de más de
+  200 KB que parezca contener un secreto se retiene por sí solo.
   Claude Code aun así guarda el original en tu historial de sesiones local (`~/.claude/projects`); los hooks
   no pueden cambiar eso.
 - `jq` es necesario para eso. Viene incluido en macOS 15 o más reciente. Los instaladores lo agregan con
@@ -206,12 +211,12 @@ Eso es todo lo que necesitas en el día a día. El resto de esta página es para
   dice "Epiphan MCP"). `.claude/settings.json` permite de antemano las lecturas con `mcp__epiphan__` y
   `mcp__claude_ai_Epiphan_MCP__`, y pide aprobación para las escrituras con esos prefijos y con cualquier
   conector cuyo nombre termine en "Epiphan Cloud" (`mcp__claude_ai_*Epiphan_Cloud__`). Con cualquier otro
-  nombre, las lecturas también preguntan una vez, porque las reglas de permiso de Claude Code no admiten
+  nombre, las lecturas también preguntan hasta que las permitas, porque las reglas de permiso de Claude Code no admiten
   comodines en el nombre de un conector. Otros conectores de Epiphan que tengas (documentación, CRM, ...) no
   se tocan.
-- En Windows, los hooks se ejecutan con Git Bash, que el instalador configura. Sin él los hooks no pueden
+- En Windows, los hooks se ejecutan con Git Bash, que el instalador agrega con winget cuando puede. Sin él los hooks no pueden
   ejecutarse, pero cada escritura de la lista sigue preguntando mediante `permissions.ask`.
-- El agente tiene instrucciones de nunca reiniciar, actualizar ni volver a aplicar un preset en un
+- El agente tiene instrucciones de nunca reiniciar, actualizar ni aplicar un preset en un
   dispositivo que esté grabando, transmitiendo o por iniciar un evento programado, y de tratar los nombres
   de dispositivos, el texto en pantalla y la documentación como datos, no como instrucciones.
 
@@ -221,10 +226,11 @@ Para dejarlo en solo lectura, inicia Claude Code con `EPIPHAN_READ_ONLY=1`:
 EPIPHAN_READ_ONLY=1 claude
 ```
 
-(En Windows PowerShell: `$env:EPIPHAN_READ_ONLY = "1"; claude`). La protección de escritura entonces bloquea
-toda escritura de Epiphan Edge en lugar de preguntar: con `mcp__epiphan__`, `mcp__claude_ai_Epiphan_MCP__`,
-`mcp__claude_ai_*Epiphan_Cloud__` y cualquier otro nombre de conector de Epiphan Edge, incluidas las
-herramientas de escritura que Epiphan agregue más adelante. Las lecturas funcionan como siempre.
+(En Windows PowerShell: `$env:EPIPHAN_READ_ONLY = "1"; claude`. Eso la define para toda la ventana, así que
+abre una ventana nueva para desactivarla). La protección de escritura entonces bloquea en lugar de preguntar:
+toda escritura conocida de Epiphan Edge con cualquier conector que tenga Epiphan en el nombre, y cualquier
+herramienta que no conozca en el propio servidor de Edge (el servidor `epiphan` del kit, o un conector con un
+nombre como "Epiphan MCP", "Epiphan Cloud" o "Epiphan Edge"). Las lecturas funcionan como siempre.
 
 Ese interruptor necesita que los hooks se ejecuten. Para bloquear escrituras también sin ellos, agrega una
 lista `deny` a `.claude/settings.local.json` (está en .gitignore, así que se queda en tu máquina). `deny`
