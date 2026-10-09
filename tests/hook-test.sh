@@ -337,6 +337,11 @@ else ok "no command pre-approves a write tool"; fi
 # A Bash wildcard like Bash(date*) also matches "date -f <file>", which would read any file into context.
 if grep -l 'allowed-tools:.*Bash([^)]*\*' .claude/commands/*.md; then bad "a command pre-approves a Bash wildcard"
 else ok "no command pre-approves a Bash wildcard"; fi
+# The installers fetch the latest release (or EPIPHAN_KIT_REF), never the tip of main.
+for f in install.sh install.ps1; do
+  if grep -q 'EPIPHAN_KIT_REF' "$f" && grep -q 'releases/latest' "$f" && ! grep -q 'refs/heads/main' "$f"; then ok "$f installs a release, not main"
+  else bad "$f doesn't pin the kit to a release"; fi
+done
 # Commands that look at a preview frame must not read a stream key off the screen.
 for c in view-room check-room; do
   if grep -q "don't transcribe it" ".claude/commands/$c.md"; then ok "/$c won't transcribe on-screen keys"

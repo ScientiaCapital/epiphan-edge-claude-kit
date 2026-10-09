@@ -15,9 +15,10 @@ New checks are the best contribution: a command that answers a question you keep
 ## Rules for commands
 
 - Tool names use the `mcp__epiphan__` prefix (the server name in `.mcp.json`).
-- `allowed-tools` lists read tools only (`get_*`, `kb_*`, and the harmless `Bash(date*)`). `allowed-tools` pre-approves
+- `allowed-tools` lists read tools only (`get_*`, `kb_*`, and the exact `Bash(date)`). `allowed-tools` pre-approves
   tools. Today the `ask` rules in `.claude/settings.json` still win, but anyone who removes those rules
-  would then get writes with no prompt, so keep writes out.
+  would then get writes with no prompt, so keep writes out. Never a Bash wildcard: `Bash(date*)` also
+  matches `date -f <file>`, which reads a file into the conversation.
 - Follow the Tone section in `CLAUDE.md`: calm, plain words, priority as Fix first / Fix soon / When
   convenient, and storage as an FYI note, not a problem.
 - A command that writes must: resolve the target by name → check the room → show the exact call → let the user
@@ -36,6 +37,16 @@ New checks are the best contribution: a command that answers a question you keep
   tables, and that no command pre-approves a write. It needs `jq`.
 - `shellcheck install.sh .claude/hooks/*.sh tests/hook-test.sh` if you touch a script.
 - CI runs both on every PR, plus the installers on macOS, Linux, and Windows.
+- A new secret shape needs a case in `tests/redaction-cases.json`. That file is shared byte-for-byte with
+  Fleetwatch: add the case there first, run its Python redactor, then copy the file here.
+
+## Releases and the main branch
+
+- `main` is protected: every change goes through a pull request with one approving review from a code
+  owner, and a stale review is dismissed by a new push. CI must be green.
+- The installers fetch the latest GitHub release, never the tip of `main`, so a merged change reaches users
+  only when a release is published. After a release-worthy merge: update `CHANGELOG.md`, tag it (`vX.Y.Z`),
+  and publish a GitHub release with that tag. `EPIPHAN_KIT_REF=<tag or branch>` installs something else.
 
 ## PR checklist
 

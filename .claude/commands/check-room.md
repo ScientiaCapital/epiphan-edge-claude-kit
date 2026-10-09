@@ -1,5 +1,5 @@
 ---
-description: "Check a room is ready before you record or stream. Read only"
+description: "Say whether a room is ready to record or stream: picture, sound, and schedule. Read only"
 argument-hint: "<room/device name> [record|stream] [channel name]"
 allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_recorder_status_for_devices, mcp__epiphan__get_storage_status_for_devices, mcp__epiphan__get_channel_settings, mcp__epiphan__get_device_sources, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_cms_names_for_devices, mcp__epiphan__get_current_or_next_cms_event_for_device, Bash(date)
 ---

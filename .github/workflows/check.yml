@@ -99,6 +99,8 @@ jobs:
         env:
           EPIPHAN_KIT_DIR: ${{ runner.temp }}/kit
           EPIPHAN_REGION: au
+          # The tarball path can't use the local checkout, so pin it to this commit instead of the latest release.
+          EPIPHAN_KIT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           bin="$RUNNER_TEMP/bin"; mkdir -p "$bin"
           for t in bash curl tar gzip mktemp mkdir cp rm touch cat env; do ln -s "$(command -v "$t")" "$bin/$t"; done

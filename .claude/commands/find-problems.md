@@ -32,5 +32,6 @@ warnings are routine, so keep it calm.
 5. For the first **Fix first** item, run one `kb_search` (pass `device_model`) and cite the doc title for the
    fix. If `low_confidence` is true, say the docs don't cover it.
 6. If step 2 counted any devices, add one line after the table: "FYI: N Pearls have little or no local space
-   left. That's normal when recordings upload to your CMS." Don't list them unless asked.
+   left. That's normal when recordings upload to your video platform (Panopto, Kaltura, or Edge) after each
+   class." Don't list them unless asked.
 7. **Don't change anything here.** End with: "Run `/fix-problem <#>` to plan and apply a fix."

@@ -1,5 +1,5 @@
 ---
-description: "See what a room's camera shows and hear if the mic is live. Read only"
+description: "Show the live picture from a room's camera and whether the mic is picking up sound. Read only"
 argument-hint: "<room/device name> [channel name]"
 allowed-tools: mcp__epiphan__get_devices_in_my_team, mcp__epiphan__get_channel_image, mcp__epiphan__get_channel_audio_levels, mcp__epiphan__get_device_sources
 ---
