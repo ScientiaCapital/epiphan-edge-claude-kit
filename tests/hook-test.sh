@@ -361,9 +361,9 @@ for f in .claude/commands/*.md; do
 done
 ok "command tables checked"
 # Both READMEs share one layout; every image either one points to must exist.
-for a in $(grep -oh 'docs/assets/[A-Za-z0-9._-]*' README.md README.es.md | sort -u); do
+while read -r a; do
   [ -f "$a" ] || bad "README image $a is missing"
-done
+done < <(grep -oh 'docs/assets/[A-Za-z0-9._-]*' README.md README.es.md | sort -u)
 ok "README images checked"
 
 if [ "$fails" -ne 0 ]; then echo "$fails failed."; exit 1; fi
