@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.4 (2026-10-17)
 
 README rewrite in English and Spanish, on Epiphan brand, ahead of InfoComm Latina.
 

@@ -283,7 +283,7 @@ see [SECURITY.md](SECURITY.md).
 
 ## Status
 
-- v1.1.3 is the latest release. CI runs the hook tests on macOS, Linux, and Windows on every pull request.
+- v1.1.4 is the latest release. CI runs the hook tests on macOS, Linux, and Windows on every pull request.
 - Tested end to end against a live Epiphan Edge team on October 8, 2026: reads, redaction, and a refused
   write from a script.
 - Next: starter packs per kind of customer (higher ed, live events, government). See

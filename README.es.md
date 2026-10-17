@@ -289,7 +289,7 @@ revisión en inglés sencillo y enumera las herramientas de lectura que necesita
 
 ## Estado
 
-- La v1.1.3 es la última versión publicada. La integración continua (CI) ejecuta las pruebas de los hooks en
+- La v1.1.4 es la última versión publicada. La integración continua (CI) ejecuta las pruebas de los hooks en
   macOS, Linux y Windows en cada pull request.
 - Probado de principio a fin con un equipo real de Epiphan Edge el 8 de octubre de 2026: consultas, claves
   ocultas y un cambio rechazado desde un script.
