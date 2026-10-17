@@ -44,5 +44,5 @@ and tell them exactly what to type. No jargon. Keep the tone calm and friendly.
    - `/check-room <room>`: is a room ready to record or stream
    - `/record-room`, `/stream-room`, `/fix-problem`: these change a device, and ask your permission first.
      They need an Epiphan Edge Premium plan.
-   - Or just ask a question in plain English.
+   - Or just ask a question in plain words, in English or Spanish.
 5. End with: "Try `/device-overview` now."
