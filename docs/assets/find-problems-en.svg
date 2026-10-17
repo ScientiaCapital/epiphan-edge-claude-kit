@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="268" viewBox="0 0 1000 268" role="img" aria-label="Example /find-problems output: two items, Fix first and Fix soon, and a storage note" font-family="Söhne,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <rect width="1000" height="268" rx="16" fill="#0d231f"/>
+  <circle cx="28" cy="24" r="6" fill="#316472"/><circle cx="48" cy="24" r="6" fill="#316472"/><circle cx="68" cy="24" r="6" fill="#316472"/>
+  <text x="40" y="66" font-family="Söhne Mono,ui-monospace,SFMono-Regular,Menlo,monospace" font-size="15" fill="#83ce41">&gt; /find-problems</text>
+  <text x="40" y="104" font-size="13" font-weight="600" fill="#cfd3dc">Priority</text>
+  <text x="190" y="104" font-size="13" font-weight="600" fill="#cfd3dc">Device</text>
+  <text x="300" y="104" font-size="13" font-weight="600" fill="#cfd3dc">What&#x27;s going on</text>
+  <text x="520" y="104" font-size="13" font-weight="600" fill="#cfd3dc">How we know</text>
+  <text x="740" y="104" font-size="13" font-weight="600" fill="#cfd3dc">Suggested fix</text>
+  <path d="M40 116 L960 116" stroke="#316472"/>
+  <rect x="32" y="129" width="88" height="25" rx="12" fill="#2a2959"/>
+  <text x="40" y="146" font-size="14" font-weight="600" fill="#d7daf9">Fix first</text>
+  <text x="190" y="146" font-size="14" fill="#ffffff">Lecture 204</text>
+  <text x="300" y="146" font-size="14" fill="#ffffff">No picture from Camera 2</text>
+  <text x="520" y="146" font-size="14" fill="#ffffff">Next class at 2 p.m.</text>
+  <text x="740" y="146" font-size="14" fill="#ffffff">Check the SDI cable at the rack</text>
+  <rect x="32" y="167" width="80" height="25" rx="12" fill="#316472"/>
+  <text x="40" y="184" font-size="14" font-weight="600" fill="#e2f7f5">Fix soon</text>
+  <text x="190" y="184" font-size="14" fill="#ffffff">Auditorium</text>
+  <text x="300" y="184" font-size="14" fill="#ffffff">Firmware one version back</text>
+  <text x="520" y="184" font-size="14" fill="#ffffff">4.x.5, others on 4.x.6</text>
+  <text x="740" y="184" font-size="14" fill="#ffffff" font-family="Söhne Mono,ui-monospace,SFMono-Regular,Menlo,monospace">/fix-problem 2</text>
+  <text x="40" y="226" font-size="13" fill="#cfd3dc">FYI: 2 Pearls have little or no local space left. That&#x27;s normal when recordings upload</text>
+  <text x="40" y="246" font-size="13" fill="#cfd3dc">to your video platform (Panopto, Kaltura, or Edge) after each class.</text>
+  </svg>

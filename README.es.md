@@ -1,43 +1,68 @@
+<p align="right"><a href="README.md">English: read this guide in English</a> · Español</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-es-dark.svg">
+    <img alt="Epiphan Edge y Claude Code: pregúntale a tus salas en palabras sencillas" src="docs/assets/banner-es-light.svg" width="720">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml"><img alt="check" src="https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml/badge.svg"></a>
+  <a href="https://github.com/ScientiaCapital/epiphan-edge-claude-kit/releases"><img alt="Versión" src="https://img.shields.io/github/v/release/ScientiaCapital/epiphan-edge-claude-kit?sort=semver"></a>
+  <a href="https://www.epiphan.com/edge/"><img alt="Epiphan Edge" src="https://img.shields.io/badge/Epiphan-Edge-0c3d34"></a>
+  <a href="https://docs.anthropic.com/en/docs/claude-code/overview"><img alt="Claude Code" src="https://img.shields.io/badge/Claude-Code-4a4aaf"></a>
+  <a href="LICENSE"><img alt="Licencia: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+
+<p align="center">
+  <a href="#empieza-aquí-unos-10-minutos-sin-experiencia-previa">Empieza aquí</a> ·
+  <a href="#comandos">Comandos</a> ·
+  <a href="#modelo-de-seguridad">Seguridad</a> ·
+  <a href="README.md">English</a>
+</p>
+
 # Epiphan Edge × Claude Code
 
-[English](README.md) · Español
+Habla con tus dispositivos Epiphan en palabras sencillas. Este kit conecta Claude Code con tu cuenta de
+Epiphan Edge para que puedas preguntar "¿Qué está fallando?", ver lo que ve la cámara de una sala e iniciar
+una grabación, siempre con tu aprobación antes de cambiar algo.
 
-[![check](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml/badge.svg)](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/actions/workflows/check.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <img alt="Ejemplo de salida de /find-problems: dos puntos, Arreglar primero y Arreglar pronto, y una nota de almacenamiento" src="docs/assets/find-problems-es.svg" width="880">
+</p>
 
-Habla con tus dispositivos Epiphan en palabras sencillas, desde una ventana en tu propia computadora. Este kit conecta Claude Code
-con tu cuenta de Epiphan Edge, para que puedas preguntar "¿Qué está fallando?", ver lo que ve la cámara de
-una sala e iniciar una grabación, siempre con tu visto bueno antes de cambiar algo.
+<p align="center"><sub>Ejemplo de salida. La tuya muestra tus propias salas.</sub></p>
 
-```
-> /find-problems
-#  Priority     Device       Group     What's going on            How we know                Suggested fix
-1  Fix first    Lecture 204  Campus A  No picture from Camera 2   Next class at 2 p.m.       Check the SDI cable at the rack
-2  Fix soon     Auditorium   Campus B  Firmware one version back  4.x.5, others on 4.x.6     /fix-problem 2
+## Lo que obtienes
 
-FYI: 2 Pearls have little or no local space left. That's normal when recordings upload to your video platform (Panopto, Kaltura, or Edge) after each class.
-```
-(Ejemplo de salida. La tuya muestra tus propias salas).
+| | |
+|---|---|
+| Respuestas en palabras sencillas | Pregunta "¿Qué salas no pueden grabar mañana?" y recibe una respuesta corta, en tus palabras. |
+| Revisión de salas antes de clase | Listo, Listo con notas o No listo, con imagen, sonido y horario revisados. |
+| Nada cambia sin tu aprobación | Cada grabación, transmisión, reinicio o arreglo te pregunta antes. |
+| Las claves quedan ocultas | Las claves de transmisión y las contraseñas se ocultan antes de que Claude las vea. |
+| Español o inglés | Claude responde en el idioma en que escribes. |
+| Diez comandos, sin código | Cada comando es un archivo en inglés sencillo que puedes leer y copiar. |
 
 ---
 
-## Empieza aquí (unos 10 minutos, no necesitas experiencia)
+## Empieza aquí (unos 10 minutos, sin experiencia previa)
 
 ### Lo que necesitas
 
 - Una computadora Mac (macOS 13 o más reciente), Windows 10 u 11, o Linux
-- Una cuenta de pago de Epiphan Edge con al menos un dispositivo Epiphan vinculado (como Pearl-2, Pearl Mini,
-  Pearl Nano, Pearl Nexus, Venue o EC20). Consultar y revisar funciona con Edge; los comandos que cambian algo
-  (`/record-room`, `/stream-room`, `/fix-problem`) necesitan Epiphan Edge Premium.
-- Una cuenta de Claude con plan Pro, Max, Team o Enterprise. El plan gratuito no incluye Claude Code.
-- Una versión actual de Claude Code. El instalador lo instala o lo actualiza; `claude update` lo hace a mano.
+- Una cuenta de Epiphan Edge con al menos un dispositivo Epiphan vinculado (Pearl-2, Pearl Mini, Pearl Nano,
+  Pearl Nexus, Venue o EC20). Las consultas funcionan con cualquier plan de pago de Edge. Los comandos que
+  cambian algo (`/record-room`, `/stream-room`, `/fix-problem`) necesitan Epiphan Edge Premium.
+- Un plan de Claude Pro, Max, Team o Enterprise. El plan gratuito no incluye Claude Code.
 
 ### Paso 1: Abre una terminal
 
 Una terminal es una ventana donde escribes comandos.
 
 - Mac: presiona `⌘ Command` + `Space`, escribe Terminal y presiona `Enter`.
-- Windows: haz clic en Inicio (Start), escribe PowerShell y presiona `Enter`.
+- Windows: haz clic en Inicio, escribe PowerShell y presiona `Enter`.
 - Linux: presiona `Ctrl` + `Alt` + `T`.
 
 ### Paso 2: Pega una línea
@@ -54,40 +79,35 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/ScientiaCapital/epiphan-edge-claude-kit/main/install.ps1 | iex
 ```
 
-Instala o actualiza Claude Code (y en Windows, Git for Windows), agrega `jq` cuando puede, descarga la
-última versión publicada de este kit en una carpeta llamada `epiphan-edge-claude-kit` dentro de tu carpeta
-personal, muestra qué versión instaló y abre Claude Code ahí. (Si no puede consultar la última versión
-publicada, lo dice y usa los archivos más recientes de `main`.) Va mostrando pasos numerados y te hace una sola pregunta: dónde está tu cuenta de Epiphan Edge (North America, Europe o Australia). Fíjate en la dirección
-web que usas para iniciar sesión en Epiphan Edge: go.epiphan.cloud es North America, eu.epiphan.cloud es
-Europe y au.epiphan.cloud es Australia. ¿No estás seguro? Elige North America. Puedes leer el script
-antes:
+Instala o actualiza Claude Code, descarga la última versión de este kit en `~/epiphan-edge-claude-kit` y abre
+Claude Code ahí. Te hace una sola pregunta: tu región. Fíjate en la dirección que usas para iniciar sesión en
+Epiphan Edge: go.epiphan.cloud es Norteamérica (North America), eu.epiphan.cloud es Europa (Europe) y
+au.epiphan.cloud es Australia. ¿No sabes cuál? Elige North America. Puedes leer el script antes:
 [install.sh](install.sh) o [install.ps1](install.ps1).
 
 ### Paso 3: Responde tres preguntas en Claude Code
 
-1. Si es la primera vez que usas Claude Code, se abre un navegador. Inicia sesión en tu cuenta de Claude.
+1. ¿Es tu primera vez con Claude Code? Se abre un navegador. Inicia sesión en tu cuenta de Claude.
 2. "Do you trust the files in this folder?" (¿Confías en los archivos de esta carpeta?). Elige Yes.
-3. "New MCP server found in this project: epiphan" (se encontró un nuevo servidor MCP en este proyecto). Es
-   la conexión con Epiphan Edge. Presiona la flecha hacia arriba para resaltar "Use this MCP server" y luego
-   presiona `Enter`. (El resaltado empieza en "Continue without using this MCP server", así que si presionas
-   `Enter` de inmediato, dices que no).
+3. "New MCP server found in this project: epiphan" (se encontró un servidor MCP nuevo). Es la conexión con
+   Epiphan Edge. Presiona la flecha hacia arriba para resaltar "Use this MCP server" y luego `Enter`. (El
+   resaltado empieza en "Continue without using this MCP server", así que si presionas `Enter` de inmediato,
+   dices que no).
 
-### Paso 4: Escribe `/connect-epiphan`
+### Paso 4: Inicia sesión en Epiphan
 
-Escribe `/connect-epiphan` y presiona `Enter`. Claude revisa la conexión. La primera vez te pide iniciar
-sesión en Epiphan. No necesitas salir de Claude:
+Escribe `/connect-epiphan` y presiona `Enter`. La primera vez te pide iniciar sesión:
 
-1. Escribe `/mcp` y presiona `Enter`. Se abre una lista de conexiones.
-2. Usa las flechas para elegir `epiphan`, presiona `Enter` y luego elige Authenticate (puede decir
-   Re-authenticate).
-3. Se abre un navegador. Inicia sesión con tu cuenta de Epiphan Edge. Si te pide elegir un equipo (team),
-   elige el que tiene las salas que atiendes. Un equipo es el conjunto de dispositivos que ves al iniciar
-   sesión en Epiphan Edge en un navegador; la mayoría de las escuelas tiene uno.
-4. De vuelta en la terminal, presiona `Esc` para cerrar la lista y luego escribe `/connect-epiphan` otra vez.
+1. Escribe `/mcp` y presiona `Enter`.
+2. Con las flechas, elige `epiphan`, presiona `Enter` y luego elige Authenticate (o Re-authenticate).
+3. Se abre un navegador. Inicia sesión con tu cuenta de Epiphan Edge. Si te pide un equipo (team), elige el
+   que tiene tus salas. (Un equipo es el conjunto de dispositivos que ves en Epiphan Edge. La mayoría de las
+   escuelas tiene uno).
+4. De vuelta en la terminal, presiona `Esc` y escribe `/connect-epiphan` otra vez.
 
 Cuando te diga que ya estás conectado, escribe `/device-overview`.
 
-### La próxima vez, o si alguien lo configuró por ti
+### La próxima vez
 
 Abre una terminal y escribe:
 ```bash
@@ -96,44 +116,36 @@ claude
 ```
 Luego escribe `/check-room` y el nombre de la sala.
 
-Para actualizar el kit a la última versión publicada, vuelve a pegar la línea del Paso 2. Conserva los
-archivos que agregaste y vuelve a preguntar tu región, así que elige la misma (Enter elige North America).
+Para actualizar el kit, vuelve a pegar la línea del Paso 2. Conserva tus archivos y vuelve a preguntar tu región.
 
 ### Ejecútalo desde un script
 
-Los comandos funcionan sin abrir Claude Code, desde la misma carpeta:
 ```bash
 cd ~/epiphan-edge-claude-kit
 claude -p "/find-problems"
-claude -p "/check-room Courtroom"
-claude -p "Which rooms can't record tomorrow morning?"
+claude -p "¿Qué salas no pueden grabar mañana en la mañana?"
 ```
-Primero inicia sesión una vez de la forma normal (Pasos 3 y 4). Cada ejecución usa tu plan de Claude como
-cualquier otra solicitud. Todo lo que cambiaría un dispositivo (`/record-room`, `/stream-room`,
-`/fix-problem`) necesita que estés en el teclado para aprobarlo, así que desde un script se rechaza y nada
-cambia. Quédate con la salida de texto predeterminada o con `--output-format json`;
-`--output-format stream-json --verbose` también imprime los datos del dispositivo sin censurar como
-metadatos, así que no lo uses en un script que otras personas puedan leer. Para un vigilante siempre activo
-que publica un resumen, consulta el proyecto complementario, Fleetwatch, cuando se publique.
+Primero inicia sesión una vez (Pasos 3 y 4). Todo lo que cambia un dispositivo necesita que estés en el
+teclado, así que un script no puede hacer cambios. Usa la salida predeterminada o `--output-format json`:
+`stream-json --verbose` también imprime los datos del dispositivo sin ocultar.
 
-### Si te atoras
+### Si algo no funciona
 
 | Ves esto | Haz esto |
 |---|---|
 | `command not found: claude` o `'claude' is not recognized` | Cierra la terminal, abre una nueva y vuelve a pegar la línea del Paso 2. |
-| `'irm' is not recognized` | Estás en el Símbolo del sistema (Command Prompt), no en PowerShell. Abre PowerShell (Paso 1). |
-| `/connect-epiphan` dice que no hay servidor de Epiphan | Elegiste "Continue without" en la pregunta "New MCP server found". Escribe `/mcp`, elige `epiphan`, elige Enable, presiona `Esc` y luego `/connect-epiphan` otra vez. |
-| `FORBIDDEN` o "not signed in" | No has iniciado sesión en Epiphan Edge. Escribe `/mcp`, elige `epiphan` y luego Authenticate o Re-authenticate (Paso 4). Si no aparece ninguna de las dos opciones, escribe `/exit`, ejecuta `claude mcp login epiphan` y luego `claude`. |
-| Falla el inicio de sesión, o "0 devices" | Región o equipo equivocados (consulta el Paso 4 para saber qué es un equipo). Vuelve a pegar la línea del Paso 2 para elegir otra región. Para elegir otro equipo, escribe `/mcp`, elige `epiphan` y luego Re-authenticate. |
-| Ayer funcionaba y hoy no | Tu sesión de Epiphan expiró. Escribe `/mcp`, elige `epiphan` y luego Re-authenticate. |
-| Iniciaste sesión en la mañana y ahora sale `FORBIDDEN` otra vez | Otra persona inició sesión en el mismo equipo compartido. Un equipo compartido permite una sola sesión a la vez. Escribe `/mcp`, elige `epiphan` y luego Re-authenticate, y pónganse de acuerdo sobre quién usa el equipo, o pídele a tu administrador de Epiphan un equipo propio. |
-| `/start`, `/triage` u otro comando anterior no hace nada | En la v1.1.0 los comandos cambiaron de nombre para decir lo que hacen. `/start` ahora es `/connect-epiphan`, `/triage` es `/find-problems`, y `/schedule` ahora abre el programador propio de Claude Code (la versión del kit es `/upcoming-recordings`). Escribe `/` para verlos todos, o consulta [CHANGELOG.md](CHANGELOG.md). |
-| Se rechazó un cambio | Los cambios necesitan un plan Epiphan Edge Premium. La cámara EC20 no puede grabar ni transmitir por comando. |
-| `BLOCKED: ... bypass mode` | Claude está en modo bypass. Presiona `Shift+Tab` para salir de él y vuelve a pedirlo. |
+| `'irm' is not recognized` | Estás en el Símbolo del sistema. Abre PowerShell (Paso 1). |
+| `/connect-epiphan` dice que no hay servidor de Epiphan | Escribe `/mcp`, elige `epiphan`, elige Enable, presiona `Esc` y luego `/connect-epiphan` otra vez. |
+| `FORBIDDEN`, "not signed in", o ayer funcionaba | Tu sesión de Epiphan no existe o expiró. Escribe `/mcp`, elige `epiphan` y luego Authenticate o Re-authenticate. Si no aparece ninguna, escribe `/exit`, ejecuta `claude mcp login epiphan` y luego `claude`. |
+| `FORBIDDEN` otra vez, poco después de iniciar sesión | Otra persona inició sesión en el mismo equipo, y un equipo permite una sola sesión a la vez. Usa Re-authenticate y pónganse de acuerdo sobre quién lo usa, o pide a tu administrador de Epiphan un equipo propio. |
+| Falla el inicio de sesión, o "0 devices" | Región o equipo equivocados. Vuelve a pegar la línea del Paso 2 para elegir otra región, o usa Re-authenticate para elegir otro equipo. |
+| `/start` o `/triage` no hace nada | Los comandos cambiaron de nombre en la v1.1.0: `/start` es `/connect-epiphan`, `/triage` es `/find-problems` y el `/schedule` del kit es `/upcoming-recordings`. Escribe `/` para verlos todos. |
+| Se rechazó un cambio | Los cambios necesitan Epiphan Edge Premium. La cámara EC20 no puede grabar ni transmitir por comando. |
+| `BLOCKED: ... bypass mode` | Presiona `Shift+Tab` para salir del modo bypass y vuelve a pedirlo. |
 | `BLOCKED: couldn't read this Epiphan tool call` | Vuelve a pedirlo. Si se repite, abre un issue. |
-| `READ-ONLY: ...` | Claude Code se inició en modo de solo lectura (`EPIPHAN_READ_ONLY` está definida). Para hacer un cambio, con tu aprobación, escribe `/exit`, abre una ventana de terminal nueva e inicia `claude` ahí. |
+| `READ-ONLY: ...` | Claude Code se inició en modo de solo lectura. Para hacer un cambio, escribe `/exit`, abre una ventana de terminal nueva e inicia `claude` ahí. |
 | `[Epiphan kit: ... withheld ...]` | Instala `jq` (consulta Modelo de seguridad), o pregunta por menos dispositivos a la vez. |
-| `already exists but isn't this kit` | Tienes otra carpeta con el mismo nombre. Cámbiale el nombre y vuelve a pegar la línea del Paso 2. |
+| `already exists but isn't this kit` | Otra carpeta tiene el mismo nombre. Cámbiale el nombre y vuelve a pegar la línea del Paso 2. |
 | Cualquier otra cosa | Ejecuta `claude doctor`, o [abre un issue](https://github.com/ScientiaCapital/epiphan-edge-claude-kit/issues). |
 
 ---
@@ -143,7 +155,7 @@ que publica un resumen, consulta el proyecto complementario, Fleetwatch, cuando 
 | Comando | Qué hace | ¿Cambia algo? |
 |---|---|---|
 | `/connect-epiphan` | La primera vez: inicia tu sesión en Epiphan Edge y te da un recorrido rápido | No |
-| `/device-overview [group]` | Qué dispositivos están en línea, por grupo y modelo, y su versión de software (firmware) | No |
+| `/device-overview [group]` | Qué dispositivos están en línea, por grupo y modelo, y su versión de firmware | No |
 | `/find-problems [group]` | Qué necesita atención, en palabras sencillas, con lo que hay que arreglar primero | No |
 | `/check-room <room> [record\|stream] [channel]` | Si una sala está lista para grabar o transmitir: imagen, sonido, horario | No |
 | `/upcoming-recordings [group]` | Qué se va a grabar o transmitir (Panopto, Kaltura, Echo360, Opencast, Edge) y cualquier cosa que pueda impedirlo | No |
@@ -151,92 +163,61 @@ que publica un resumen, consulta el proyecto complementario, Fleetwatch, cuando 
 | `/ask-epiphan-docs <question> [model]` | Responde con las páginas de ayuda oficiales de Epiphan y cita la página | No |
 | `/record-room <room> [start\|stop] [channel]` | Revisa la sala → tu aprobación → graba → confirma | Sí (Edge Premium) |
 | `/stream-room <room> [destination] [start\|stop]` | Revisa la sala → tu aprobación → transmite → confirma | Sí (Edge Premium) |
-| `/fix-problem <# from /find-problems, or room + issue>` | Toma un punto de `/find-problems` (o una sala y su problema), planea el arreglo, lo aplica con tu aprobación y vuelve a revisar | Sí (Edge Premium) |
+| `/fix-problem <# from /find-problems, or room + issue>` | Planea el arreglo, lo aplica con tu aprobación y vuelve a revisar | Sí (Edge Premium) |
 
-¿La sala 204 está lista para la clase de las 2 p.m.? Escribe `/check-room 204`. O simplemente pregunta: "¿Qué salas no pueden grabar mañana en la mañana?"
+O simplemente pregunta: "¿La sala 204 está lista para la clase de las 2 p.m.?"
 
 Eso es todo lo que necesitas en el día a día. El resto de esta página es para quien se encarga de la instalación.
 
-## Cómo funciona
+## Cómo encaja todo
 
-- `.mcp.json` dirige Claude Code al servidor MCP de Epiphan (North America, `https://go.epiphan.cloud/mcp`).
-  Para Europe (`eu.epiphan.cloud`) o Australia (`au.epiphan.cloud`), el instalador agrega una configuración
-  privada para esta carpeta con `claude mcp add --scope local`, así los archivos compartidos nunca cambian y
-  las actualizaciones siguen funcionando. Inicias sesión con tu propia cuenta de Epiphan Edge y eliges un
-  equipo; el agente solo ve ese equipo.
-- Guías oficiales de Epiphan (en inglés): [Connect an AI assistant using MCP](https://kb.epiphan.com/cloud-edge/connect-an-ai-assistant-to-epiphan-cloud-using-mcp),
-  [Epiphan MCP capabilities](https://kb.epiphan.com/cloud-edge/epiphan-mcp-capabilities),
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/architecture-es-dark.svg">
+    <img alt="Le preguntas a Claude Code en palabras sencillas. Claude Code, protegido por los hooks del kit, consulta tus salas a través del servidor MCP de Epiphan Edge, y cada cambio te pregunta antes." src="docs/assets/architecture-es-light.svg" width="880">
+  </picture>
+</p>
+
+- `.mcp.json` conecta Claude Code al servidor MCP de Epiphan (`https://go.epiphan.cloud/mcp`). Para Europa o
+  Australia, el instalador agrega una configuración privada para esta carpeta (`claude mcp add --scope local`).
+  Inicias sesión con tu propia cuenta de Edge y eliges un equipo. Claude solo ve ese equipo.
+- Cada comando es un archivo Markdown en inglés sencillo en `.claude/commands/`. `CLAUDE.md` tiene las reglas
+  que Claude sigue aquí, incluido su tono tranquilo y que te responda en español o en inglés, según escribas.
+- Guías de Epiphan (en inglés): [Connect an AI assistant using MCP](https://kb.epiphan.com/cloud-edge/connect-an-ai-assistant-to-epiphan-cloud-using-mcp),
+  [Epiphan MCP capabilities](https://kb.epiphan.com/cloud-edge/epiphan-mcp-capabilities) y
   [Troubleshooting](https://kb.epiphan.com/cloud-edge/verify-and-troubleshoot-the-epiphan-mcp-connection).
-- `.claude/commands/*.md` son los comandos de barra (slash commands): instrucciones en inglés sencillo, sin
-  código. La descripción de cada uno en el menú `/` dice si es "Read only" (solo lectura) o "Changes your
-  device (asks you first)" (cambia tu dispositivo, te pregunta antes).
-- `CLAUDE.md` tiene las reglas que sigue el agente en esta carpeta, incluido su tono: tranquilo, en palabras
-  sencillas, y con el almacenamiento local tratado como algo de rutina, ya que los Pearl suben las grabaciones
-  a tu CMS después de cada clase.
 
 ## Modelo de seguridad
 
-- No hay inicio de sesión de solo lectura. El inicio de sesión OAuth de Epiphan Edge no tiene un alcance de
-  solo lectura: el token puede hacer todo lo que tu cuenta de Edge puede hacer en el equipo que elegiste.
-  "Solo lectura" en este kit se refiere al hook de protección de escritura y a las reglas de permisos de abajo,
-  no a un límite del token. Si solo quieres vigilar una flota, inicia sesión con una cuenta de Edge dedicada
-  que tenga el rol más bajo que permita tu equipo.
-- Las lecturas se ejecutan sin preguntar. Las 20 herramientas de lectura que Epiphan Edge tiene hoy están
-  permitidas en `.claude/settings.json`.
-- Toda escritura pregunta antes. Grabación, transmisión, destinos de transmisión, eventos de CMS y el cambio de CMS, presets,
-  reinicios y firmware están en `permissions.ask`. Un hook (`.claude/hooks/epiphan-write-guard.sh`) también obliga a preguntar en cada
-  herramienta de escritura de Epiphan Edge con cualquier nombre de conector, y en cualquier herramienta del
-  propio servidor de Edge que no esté en la lista de lectura (incluso una nueva con nombre de lectura), y
-  agrega una advertencia más visible a reinicios, actualizaciones de firmware, presets, detenciones,
-  eliminaciones y cambios a eventos programados o a la plataforma en la que graba un dispositivo. Una llamada
-  que el hook no puede leer se bloquea.
-- El modo bypass está desactivado en esta carpeta. `.claude/settings.json` define
-  `disableBypassPermissionsMode`, así que `--dangerously-skip-permissions` inicia Claude en modo normal aquí,
-  y toda escritura sigue preguntando. Si el modo bypass llegara a estar activo, el hook bloquea las escrituras
-  de Epiphan. Para permitir el modo bypass, quita esa línea de tu copia; la próxima actualización puede deshacerlo o detenerse con un mensaje.
-- Las claves de transmisión (stream keys) se ocultan al agente. Un segundo hook
-  (`.claude/hooks/epiphan-redact.sh`) reemplaza claves, contraseñas y la ruta de cualquier URL RTMP/SRT con
-  `[redacted]` antes de que Claude vea el resultado. Lee el JSON en lugar de buscar patrones: unos cuantos MB
-  de datos de dispositivos tardan segundos. Es de mejor esfuerzo: conoce los nombres de campo que Epiphan usa
-  hoy. Si un resultado parece contener un secreto y no se puede revisar (sin `jq`, un error, o más de 20
-  segundos), Claude recibe en su lugar una nota de "withheld" (retenido). Un solo valor de texto de más de
-  200 KB que parezca contener un secreto se retiene por sí solo.
-  Claude Code aun así guarda el original en tu historial de sesiones local (`~/.claude/projects`); los hooks
-  no pueden cambiar eso.
-- `jq` es necesario para eso. Viene incluido en macOS 15 o más reciente. Los instaladores lo agregan con
-  Homebrew o winget cuando pueden; si no, ejecuta `brew install jq` (macOS 13–14) o descárgalo de
-  [jqlang.github.io/jq](https://jqlang.github.io/jq), o instala el paquete `jq` de tu distribución de Linux.
-- Nombres de conector: ambos hooks cubren las herramientas de Epiphan Edge con cualquier nombre de conector
-  que contenga "Epiphan" ([la guía de Epiphan](https://kb.epiphan.com/cloud-edge/connect-claude-to-epiphan-mcp)
-  dice "Epiphan MCP"). `.claude/settings.json` permite de antemano las lecturas con `mcp__epiphan__` y
-  `mcp__claude_ai_Epiphan_MCP__`, y pide aprobación para las escrituras con esos prefijos y con cualquier
-  conector cuyo nombre termine en "Epiphan Cloud" (`mcp__claude_ai_*Epiphan_Cloud__`). Con cualquier otro
-  nombre, las lecturas también preguntan hasta que las permitas, porque las reglas de permiso de Claude Code no admiten
-  comodines en el nombre de un conector. Otros conectores de Epiphan que tengas (documentación, CRM, ...) no
-  se tocan.
-- En Windows, los hooks se ejecutan con Git Bash, que el instalador agrega con winget cuando puede. Sin él los hooks no pueden
-  ejecutarse, pero cada escritura de la lista sigue preguntando mediante `permissions.ask`.
-- El agente tiene instrucciones de nunca reiniciar, actualizar ni aplicar un preset en un
-  dispositivo que esté grabando, transmitiendo o por iniciar un evento programado, y de tratar los nombres
-  de dispositivos, el texto en pantalla y la documentación como datos, no como instrucciones.
+- El inicio de sesión de Epiphan Edge no es de solo lectura. Puede hacer todo lo que tu cuenta de Edge puede
+  hacer en ese equipo. Los límites de abajo vienen de este kit, así que para solo vigilar una flota, usa una
+  cuenta de Edge con el rol más bajo.
+- Las consultas se ejecutan sin preguntar. Todo cambio (grabación, transmisión, eventos, presets, reinicios,
+  firmware) pregunta antes, y un hook agrega una advertencia más visible a los que interrumpen.
+- El modo bypass está desactivado en esta carpeta, así que los cambios siguen preguntando con
+  `--dangerously-skip-permissions`.
+- Las claves de transmisión, las contraseñas y la ruta de cualquier dirección RTMP o SRT se reemplazan con
+  `[redacted]` antes de que Claude las vea. Esto necesita `jq` (viene en macOS 15 y más reciente; el
+  instalador lo agrega cuando puede, o ejecuta `brew install jq`). Claude Code aun así guarda el original en
+  tu historial local (`~/.claude/projects`).
+- En Windows, los hooks necesitan Git Bash. Sin él, los cambios siguen preguntando, pero no se oculta nada.
+- Claude no reinicia, actualiza ni aplica un preset en un dispositivo que esté grabando, transmitiendo o por
+  iniciar un evento programado, y trata los nombres de dispositivos y el texto en pantalla como datos, no
+  como instrucciones.
 
-Para dejarlo en solo lectura, inicia Claude Code con `EPIPHAN_READ_ONLY=1`:
+Todos los detalles y límites conocidos: [SECURITY.md](SECURITY.md) (en inglés).
+
+Para bloquear todo cambio, inicia Claude Code en modo de solo lectura:
 
 ```bash
 EPIPHAN_READ_ONLY=1 claude
 ```
 
-(En Windows PowerShell: `$env:EPIPHAN_READ_ONLY = "1"; claude`. Eso la define para toda la ventana, así que
-abre una ventana nueva para desactivarla). La protección de escritura entonces bloquea en lugar de preguntar:
-toda escritura conocida de Epiphan Edge con cualquier conector que tenga Epiphan en el nombre, y cualquier
-herramienta que no conozca en el propio servidor de Edge (el servidor `epiphan` del kit, o un conector con un
-nombre como "Epiphan MCP", "Epiphan Cloud" o "Epiphan Edge"). Las lecturas funcionan como siempre.
+(En Windows PowerShell: `$env:EPIPHAN_READ_ONLY = "1"; claude`. Queda activo en esa ventana).
 
-Ese interruptor necesita que los hooks se ejecuten. Para bloquear escrituras también sin ellos, agrega una
-lista `deny` a `.claude/settings.local.json` (está en .gitignore, así que se queda en tu máquina). `deny`
-siempre tiene prioridad sobre `ask`, y las herramientas denegadas desaparecen por completo para el agente.
-Esta lista cubre el servidor del kit, el conector "Epiphan MCP" y cualquier conector cuyo nombre termine en
-"Epiphan Cloud" (el `*` coincide con el resto del nombre):
+Ese interruptor depende de los hooks. Para bloquear cambios sin ellos, pega esto en
+`.claude/settings.local.json` (se queda en tu máquina). Las herramientas denegadas desaparecen por completo
+para Claude.
 
 <details>
 <summary>.claude/settings.local.json</summary>
@@ -297,27 +278,30 @@ Esta lista cubre el servidor del kit, el conector "Epiphan MCP" y cualquier cone
 
 </details>
 
-Si le pusiste otro nombre a tu conector, el prefijo es `mcp__claude_ai_` más el nombre del conector con
-guiones bajos en lugar de espacios (para "Epiphan Cloud": `mcp__claude_ai_Epiphan_Cloud__`). Escribe `/mcp`
-para ver el nombre exacto. Una herramienta de escritura que Epiphan agregue más adelante no está en esta lista
-hasta que la agregues, pero el hook igual hace que pregunte (o la bloquea con `EPIPHAN_READ_ONLY=1`). En
-cualquier caso, el inicio de sesión de Epiphan en sí no es de solo lectura (consulta el inicio de esta
-sección).
+Para un conector con otro nombre, el prefijo es `mcp__claude_ai_` más su nombre con guiones bajos en lugar de
+espacios. Escribe `/mcp` para verlo.
 
 ## Hazlo tuyo
 
 Cada comando es un archivo Markdown en `.claude/commands/`. Copia `docs/command-template.md`, describe la
 revisión en inglés sencillo y enumera las herramientas de lectura que necesita. Consulta
-[CONTRIBUTING.md](CONTRIBUTING.md) (en inglés). Los pull requests con nuevas revisiones son bienvenidos.
-Problemas de seguridad: consulta [SECURITY.md](SECURITY.md).
+[CONTRIBUTING.md](CONTRIBUTING.md) (en inglés). Problemas de seguridad: consulta [SECURITY.md](SECURITY.md).
+
+## Estado
+
+- La v1.1.3 es la última versión publicada. La integración continua (CI) ejecuta las pruebas de los hooks en
+  macOS, Linux y Windows en cada pull request.
+- Probado de principio a fin con un equipo real de Epiphan Edge el 8 de octubre de 2026: consultas, claves
+  ocultas y un cambio rechazado desde un script.
+- Lo que sigue: paquetes iniciales por tipo de cliente (educación superior, eventos en vivo, gobierno).
+  Consulta [el plan](docs/next-sprint-proav-tech-brief.md) (en inglés).
 
 ## Agradecimientos
 
-Muchas gracias al equipo de ingeniería de Epiphan por crear el servidor MCP de Epiphan. Todo lo que hay aquí
-se apoya en las herramientas que construyeron, y solo va a seguir mejorando.
+Gracias al equipo de ingeniería de Epiphan, que creó el servidor MCP de Epiphan en el que funciona este kit.
 
 ## Licencia
 
-[MIT](LICENSE). Este es un kit inicial de la comunidad, no un producto oficial de Epiphan (not an official
-Epiphan product). Epiphan, Pearl y Epiphan Edge son marcas comerciales de Epiphan Systems Inc. Claude y
-Claude Code son marcas comerciales de Anthropic.
+[MIT](LICENSE). Este es un kit inicial de la comunidad, no un producto oficial de Epiphan. Epiphan, Pearl y
+Epiphan Edge son marcas comerciales de Epiphan Systems Inc. Claude y Claude Code son marcas comerciales de
+Anthropic.

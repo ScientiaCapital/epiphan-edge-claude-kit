@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+README rewrite in English and Spanish, on Epiphan brand, ahead of InfoComm Latina.
+
+- README.md and README.es.md: shorter (the Safety model now points to SECURITY.md for detail) and laid out the
+  same way in both languages, like Fleetwatch and pearl-episodes: a language switch at the top, an Epiphan
+  banner, badges, a nav row, a `/find-problems` hero image, a "What you get" table, a diagram, and a Status
+  section. The Spanish page uses neutral Latin American Spanish and its own Spanish art.
+- `scripts/build_readme_art.py` builds every README image in English and Spanish, light and dark, from Epiphan
+  Brand MCP color tokens and the official Epiphan logos (`docs/assets/`).
+- CLAUDE.md: a Language section. Claude answers in English or Spanish to match the user, with Spanish
+  priority labels (Arreglar primero, Arreglar pronto, Cuando convenga) and verdicts (Listo, No listo).
+- `tests/hook-test.sh` checks that every image either README points to exists.
+
 ## v1.1.3 (2026-10-09)
 
 Audit of CLAUDE.md and README.md against the code (every claim checked by two reviewers).
