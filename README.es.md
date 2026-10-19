@@ -302,6 +302,6 @@ Gracias al equipo de ingeniería de Epiphan, que creó el servidor MCP de Epipha
 
 ## Licencia
 
-[MIT](LICENSE). Este es un kit inicial de la comunidad, no un producto oficial de Epiphan. Epiphan, Pearl y
+[MIT](LICENSE). Este es un kit inicial de la comunidad, no un producto de Epiphan con soporte oficial. Epiphan, Pearl y
 Epiphan Edge son marcas comerciales de Epiphan Systems Inc. Claude y Claude Code son marcas comerciales de
 Anthropic.
