@@ -295,5 +295,5 @@ Thanks to the Epiphan engineering team, who built the Epiphan MCP server this ki
 
 ## License
 
-[MIT](LICENSE). This is a community starter kit, not an official Epiphan product. Epiphan, Pearl, and Epiphan
+[MIT](LICENSE). This is a community starter kit, not an officially supported Epiphan product. Epiphan, Pearl, and Epiphan
 Edge are trademarks of Epiphan Systems Inc. Claude and Claude Code are trademarks of Anthropic.
