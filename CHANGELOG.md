@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+Redaction fix: secret field names written in camelCase or PascalCase are masked.
+
+- `epiphan-redact.sh` tested a field name for a secret word only after a separator, so `srt_passphrase` was
+  masked but `SrtPassphrase`, `PrimaryStreamKey`, `accessToken` and `RTMPKey` passed through to Claude. A name
+  is now also tested split into words. This covers object keys, `{"name": ..., "value": ...}` pairs and table
+  headers. Words that only look like secret names (`Keynote`, `Monkey`, `Turnkey`, `nextPageToken`) are kept.
+- Text that isn't valid JSON, such as a cut-off tool result, now has a quoted key's value masked when the key
+  passes the same test. Before, `"srt_passphrase": "..."` in such text was not masked either.
+- `tests/redaction-cases.json` version 4 (shared with Fleetwatch) adds eight cases for these shapes.
+
 ## v1.1.4 (2026-10-17)
 
 README rewrite in English and Spanish, on Epiphan brand, ahead of InfoComm Latina.
