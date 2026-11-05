@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.5 (2026-11-05)
 
 Redaction fix: secret field names written in camelCase or PascalCase are masked.
 
