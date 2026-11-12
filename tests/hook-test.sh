@@ -189,7 +189,11 @@ if PATH="$nojq" "$nojq/bash" -c 'exit 0' 2>/dev/null; then
   for t in '{"Authorization":"Bearer FAKE"}' '{"pwd":"FAKE"}' '"Stream key: FAKE"' '{"url":"https://u:FAKE@h/x?cid=FAKE"}' '{"StreamingKey":"FAKE"}' \
            '"api_key=FAKE"' '"key: FAKE"' '"sent Basic RkFLRUJBU0lD"' '"stream%20key=FAKE"' '{"apiKey":"FAKE"}' '"ftp://u:FAKE@h/x"' \
            '"401 for sk-ant-api03-FAKE"' '{"url":"https://a.example/live/FAKE"}' '"https://hooks.slack.com/services/T0/B0/FAKE"' \
-           '{"srt.passphrase":"FAKE"}' '{"id":"publisher.rtmp.key","value":"FAKE"}' '{"pin":"FAKE"}'; do
+           '{"srt.passphrase":"FAKE"}' '{"id":"publisher.rtmp.key","value":"FAKE"}' '{"pin":"FAKE"}' \
+           '"srt_passphrase: FAKE"' '{"passwords":["FAKE"]}' '{"keys":["FAKE"]}' '{"sharedsecret":"FAKE"}' \
+           '{"param":"srt_passphrase","val":"FAKE"}' '{"setting":"rtmp.key","current":"FAKE"}' \
+           "\"eyJ""hbGciOiJIUzI1NiJ9.eyJ""zdWIiOiIxIn0.FAKE\"" "\"AKI""AFAKE000000000000\"" "\"ghp""_FAKEabcdefghijklmnopqrstuvwxyz0123\"" \
+           "\"github""_pat_11FAKEabcdefghijklmnopqrstu\"" "\"sk-""proj-FAKE\"" "\"-----BEGIN PRIVATE ""KEY-----\"" "\"xox""b-1234-FAKE\""; do
     out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | PATH="$nojq" "$nojq/bash" "$redact")
     case "$out" in *withheld*) ok "no jq: withholds $t" ;; *) bad "no jq: passed $t" ;; esac
   done
@@ -246,6 +250,43 @@ for t in 'monkey: banana' 'keyboard: US' 'hotkey: F5' 'Keynote: Passwords 101' '
   t=$(jq -cn --arg t "$t" '$t' | tr -d '\r')
   once=$(scrub "$t")
   if [ "$once" = "$t" ]; then ok "leaves alone: $t"; else bad "changed plain text: $t -> $once"; fi
+done
+# Shapes a security audit found (2026-11): a prefixed secret name in text, plural and run-together field names,
+# key/value rows with other field names, and bare token shapes. Token-shaped fakes are built from pieces so
+# secret scanners don't flag this file.
+redacts "prefixed passphrase in text"  'srt_passphrase: FAKE70'
+redacts "prefixed key in text"         'rtmp_key: FAKE71'
+redacts "plural passwords"             '{"passwords":["FAKE72"]}'
+redacts "plural keys"                  '{"keys":["FAKE73"]}'
+redacts "plural secrets"               '{"secrets":{"a":"FAKE74"}}'
+redacts "plural stream_keys"           '{"stream_keys":["FAKE75"]}'
+redacts "run-together sharedsecret"    '{"sharedsecret":"FAKE76","adminpassword":"FAKE77","streamkey":"FAKE78"}'
+redacts "param/val row"                '{"param":"srt_passphrase","val":"FAKE79"}'
+redacts "setting/current row"          '{"settings":[{"setting":"rtmp.key","current":"FAKE80"}]}'
+redacts "option/default row, number"   '{"option":"pin","default":8081}'
+redacts "a JWT"                        "session eyJ""hbGciOiJIUzI1NiJ9.eyJ""zdWIiOiIxMjM0In0.FAKE82sig"
+redacts "an AWS access key ID"         "id AKI""AFAKE834567890123 in use"
+redacts "a GitHub classic token"       "token ghp""_FAKE84abcdefghijklmnopqrstuvwxyz0123"
+redacts "a GitHub OAuth token"         "gho""_FAKE85abcdefghijklmnopqrstuvwxyz0123"
+redacts "a GitHub fine-grained token"  "github""_pat_11FAKE86abcdefghijklm_nopqrstuvwxyz0123456789"
+redacts "an OpenAI project key"        "401 for sk-""proj-FAKE87abc_def-ghi"
+redacts "a PEM private key"            "$(printf -- '-----BEGIN RSA PRIVATE ''KEY-----\nMIIEFAKE88abc\n-----END RSA PRIVATE ''KEY-----')"
+redacts "a cut-off PEM private key"    "$(printf -- '{"k":"-----BEGIN PRIVATE ''KEY-----\\nMIIEFAKE89abc')"
+redacts "a Slack bot token"            "xox""b-123456789012-FAKE90abcdef"
+redacts "a Slack user token in JSON"   '{"note":"xox''p-1234-5678-FAKE91abc"}'
+# Not secrets: words that contain a secret word, a channel called Key Room, and token prefixes on their own.
+for t in 'Channel "Key Room" is live' 'keynote_speaker: Dana' 'monkey_bars: yes' 'Keyboard: US, hotkey: F5' \
+         'see eyJ docs' 'the AKIA prefix' 'ghp_ and gho_ are GitHub prefixes' 'risk-proj-7 and task-proj-2' \
+         'xoxb- is a Slack prefix' 'BEGIN PUBLIC KEY block'; do
+  t=$(jq -cn --arg t "$t" '$t' | tr -d '\r')
+  once=$(scrub "$t")
+  if [ "$once" = "$t" ]; then ok "leaves alone: $t"; else bad "changed plain text: $t -> $once"; fi
+done
+for t in '{"name":"Key Room","channel_id":"2"}' '{"id":"3","name":"Chroma key","type":"layer","Id":"x1"}' \
+         '{"monkeys":["George"],"hotkeys":["F5"],"Keynotes":["Opening"],"turnkey":"yes"}' \
+         '{"description":"Set the stream key","status":"ok"}'; do
+  out=$(printf '{"tool_name":"mcp__epiphan__get_device_info","tool_response":%s}' "$t" | bash "$redact")
+  if [ -z "$out" ]; then ok "keeps: $t"; else bad "over-redacted: $t -> $out"; fi
 done
 out=$(printf '%s' '{"tool_name":"mcp__epiphan__kb_publish","tool_response":{"stream_key":"FAKE"}}' | bash "$redact")
 if [ -n "$out" ] && ! printf '%s' "$out" | grep -q FAKE; then ok "a new kb_ tool is still redacted"; else bad "a new kb_ tool skipped redaction"; fi
