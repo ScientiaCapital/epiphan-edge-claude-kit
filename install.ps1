@@ -27,9 +27,35 @@
                     [Environment]::GetEnvironmentVariable('Path', 'User') + ';' +
                     (Join-Path $HOME '.local\bin')
     }
-    function Get-LatestRelease {
-        try { (Invoke-RestMethod "https://api.github.com/repos/ScientiaCapital/epiphan-edge-claude-kit/releases/latest" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop).tag_name }
-        catch { $null }
+    # The tag ends up in a download URL and a git ref, so anything that isn't shaped like v1.2.3 is refused.
+    function Test-ReleaseTag($Tag) { [bool]($Tag -and ([string]$Tag) -match '^v?[0-9][A-Za-z0-9._-]*$') }
+    # Two ways to learn the latest release tag. GitHub's API allows 60 requests an hour per address, which a school
+    # network behind one address can use up, so the second way reads the redirect from the release page, which isn't
+    # counted against that limit. -ApiBase exists so a test can point the first way at an address that fails.
+    function Get-LatestRelease($ApiBase = 'https://api.github.com') {
+        $tag = $null
+        try { $tag = (Invoke-RestMethod "$ApiBase/repos/ScientiaCapital/epiphan-edge-claude-kit/releases/latest" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop).tag_name }
+        catch { $tag = $null }
+        if (Test-ReleaseTag $tag) { return $tag }
+        $tag = $null
+        try {
+            # Don't follow the redirect: its address names the tag. Invoke-WebRequest -MaximumRedirection 0 throws a
+            # different error in Windows PowerShell 5.1 than in PowerShell 7, so use HttpWebRequest, where a 302 with
+            # AllowAutoRedirect off is an ordinary response in both.
+            $request = [System.Net.HttpWebRequest]::Create("$Repo/releases/latest")
+            $request.AllowAutoRedirect = $false
+            $request.Timeout = 15000
+            $request.UserAgent = 'epiphan-edge-claude-kit-installer'
+            $response = $null
+            try { $response = $request.GetResponse() } catch [System.Net.WebException] { $response = $_.Exception.Response }
+            if ($response) {
+                $location = [string]$response.Headers['Location']
+                $response.Close()
+                if ($location -match '/releases/tag/([^/\s?#]+)') { $tag = $Matches[1] }
+            }
+        } catch { $tag = $null }
+        if (Test-ReleaseTag $tag) { return $tag }
+        return $null
     }
     function Set-Ref($Folder) {  # switch an existing clone to $Ref (a tag, branch or commit)
         git -C $Folder fetch --quiet --depth 1 origin $Ref
@@ -66,6 +92,7 @@
     if (-not (Has jq) -and (Has winget)) {
         Write-Host 'Installing jq with winget (it hides stream keys, the passwords that let a device stream, from Claude)...'
         winget install --id jqlang.jq -e --source winget --accept-package-agreements --accept-source-agreements *> $null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "winget couldn't install jq (exit code $LASTEXITCODE). Run  winget install jqlang.jq  to see why." }
         Update-Path
     }
     if (-not (Has jq)) {
@@ -91,9 +118,15 @@
 
     Say 'Step 3 of 5: The kit'
     # The published kit is installed at its latest release, so a re-run never picks up unreviewed changes on main.
+    # If the release can't be looked up, stop: main is installed only when EPIPHAN_KIT_REF=main is set on purpose.
     if (-not $Ref -and -not $env:EPIPHAN_KIT_CLONE) {
         $Ref = Get-LatestRelease
-        if (-not $Ref) { Write-Host "(Couldn't look up the latest release. Using the newest files on main.)" }
+        if (-not $Ref) {
+            Problem ("Couldn't look up the latest release of the kit on GitHub (tried its API and its release page), so nothing was installed or changed. " +
+                     'Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. ' +
+                     'To install the newest unreleased files on main instead, run  $env:EPIPHAN_KIT_REF = ''main''  first (EPIPHAN_KIT_REF=main).')
+            return
+        }
     }
     $origin = ''
     if ((Test-Path (Join-Path $Dir '.git')) -and (Has git)) { $origin = (git -C $Dir remote get-url origin 2>$null) }

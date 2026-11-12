@@ -359,7 +359,51 @@ else ok "no command pre-approves a Bash wildcard"; fi
 for f in install.sh install.ps1; do
   if grep -q 'EPIPHAN_KIT_REF' "$f" && grep -q 'releases/latest' "$f" && ! grep -q 'refs/heads/main' "$f"; then ok "$f installs a release, not main"
   else bad "$f doesn't pin the kit to a release"; fi
+  # If the release can't be looked up, they stop; main only when EPIPHAN_KIT_REF=main is set on purpose.
+  if grep -q 'EPIPHAN_KIT_REF=main' "$f" && ! grep -qi 'newest files on main' "$f"; then ok "$f fails closed without a release"
+  else bad "$f falls back to main when the release lookup fails"; fi
 done
+# install.sh, run with a curl that always fails: it must stop before downloading anything, and say how to pick main.
+fake=$(mktemp -d)
+printf '#!/bin/sh\nexit 0\n' > "$fake/claude"; printf '#!/bin/sh\nexit 22\n' > "$fake/curl"; chmod +x "$fake/claude" "$fake/curl"
+out=$(PATH="$fake:$PATH" CI=1 EPIPHAN_KIT_DIR="$fake/kit" EPIPHAN_KIT_REF='' EPIPHAN_KIT_CLONE='' EPIPHAN_REGION='' bash install.sh 2>&1); code=$?
+if [ "$code" -ne 0 ] && [ ! -e "$fake/kit" ] && printf '%s' "$out" | grep -q 'EPIPHAN_KIT_REF=main'; then ok "install.sh stops when the release lookup fails"
+else bad "install.sh without a release lookup: exit=$code, kit dir $( [ -e "$fake/kit" ] && echo created || echo absent ): $out"; fi
+rm -rf "$fake"
+# Busy networks (a school behind one IP) hit GitHub's API rate limit. The installer then asks the release page,
+# which answers with a redirect to the latest tag. It must install that tag, never main.
+fake=$(mktemp -d)
+printf '#!/bin/sh\nexit 0\n' > "$fake/claude"; printf '#!/bin/sh\nexit 1\n' > "$fake/git"
+cat > "$fake/curl" <<'EOF'
+#!/bin/sh
+echo "$*" >> "$CURL_LOG"
+case "$*" in
+  *api.github.com*) exit 22 ;;
+  *releases/latest*) printf 'HTTP/2 302 \r\nlocation: https://github.com/ScientiaCapital/epiphan-edge-claude-kit/releases/tag/%s\r\n\r\n' "$FAKE_TAG"; exit 0 ;;
+  *) exit 22 ;;
+esac
+EOF
+chmod +x "$fake/claude" "$fake/git" "$fake/curl"
+run_install() { # run_install <tag the release page redirects to>
+  : > "$fake/curl.log"
+  PATH="$fake:$PATH" CURL_LOG="$fake/curl.log" FAKE_TAG="$1" CI=1 EPIPHAN_KIT_DIR="$fake/kit" EPIPHAN_KIT_REF='' EPIPHAN_KIT_CLONE='' EPIPHAN_REGION='' bash install.sh 2>&1 || true
+}
+run_install v9.9.9 > /dev/null
+if grep -q 'archive/v9.9.9.tar.gz' "$fake/curl.log" && ! grep -q 'archive/main' "$fake/curl.log"; then ok "install.sh uses the release page when the API is rate limited, and never main"
+else bad "install.sh did not fall back to the release page: $(cat "$fake/curl.log")"; fi
+# A redirect that names something that is not a release tag is refused: nothing is downloaded.
+for evil in '../../evil' 'v1;touch-x' 'main/../x'; do
+  run_install "$evil" > /dev/null
+  if ! grep -q 'archive/' "$fake/curl.log"; then ok "install.sh refuses the odd release tag '$evil'"
+  else bad "install.sh downloaded for the odd release tag '$evil': $(cat "$fake/curl.log")"; fi
+done
+rm -rf "$fake"
+# install.ps1 has the same fallback: the release page's redirect, read without following it.
+if grep -q 'MaximumRedirection' install.ps1 && grep -q 'ApiBase' install.ps1; then ok "install.ps1 falls back to the release page"
+else bad "install.ps1 has no release-page fallback"; fi
+# A failed jq install is reported, not swallowed.
+if grep -q 'brew install jq' install.sh && ! grep -E 'brew install jq.*\|\|[[:space:]]*true' install.sh >/dev/null; then ok "install.sh reports a failed brew install jq"
+else bad "install.sh hides a failed brew install jq"; fi
 # Commands that look at a preview frame must not read a stream key off the screen.
 for c in view-room check-room; do
   if grep -q "don't transcribe it" ".claude/commands/$c.md"; then ok "/$c won't transcribe on-screen keys"

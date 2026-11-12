@@ -26,7 +26,11 @@ no secrets. The installer only writes:
 
 It also runs Anthropic's Claude Code installer or `claude update`, and installs `jq` with Homebrew or winget
 when it can. It fetches the kit at the latest release tag, not the tip of `main`, and prints the version it
-installed (`EPIPHAN_KIT_REF` picks another tag or branch).
+installed (`EPIPHAN_KIT_REF` picks another tag or branch). It looks the release up through GitHub's API and,
+if that is rate limited (many users behind one address, such as a school network), through the release page's
+redirect, and accepts only a tag shaped like `v1.2.3`. If neither lookup works, it stops
+without installing anything rather than falling back to `main`; the tip of `main` is installed only when
+you set `EPIPHAN_KIT_REF=main` yourself. Release downloads aren't checked against a published checksum yet.
 
 `.claude/settings.local.json` (your personal overrides) is gitignored.
 

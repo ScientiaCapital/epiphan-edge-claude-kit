@@ -46,7 +46,9 @@ New checks are the best contribution: a command that answers a question you keep
   owner, and a stale review is dismissed by a new push. CI must be green.
 - The installers fetch the latest GitHub release, never the tip of `main`, so a merged change reaches users
   only when a release is published. After a release-worthy merge: update `CHANGELOG.md`, tag it (`vX.Y.Z`),
-  and publish a GitHub release with that tag. `EPIPHAN_KIT_REF=<tag or branch>` installs something else.
+  and publish a GitHub release with that tag. `EPIPHAN_KIT_REF=<tag or branch>` installs something else. The
+  installers look the release up through GitHub's API and, if that is rate limited, through the release page's
+  redirect. If both fail they stop; they never fall back to `main` unless `EPIPHAN_KIT_REF=main`.
 
 ## PR checklist
 
