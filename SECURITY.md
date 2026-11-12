@@ -43,13 +43,15 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
 - `permissions.ask` in `.claude/settings.json` prompts for every known write tool, and
   `permissions.disableBypassPermissionsMode` keeps bypass mode (which skips prompts) off in this folder.
 - `.claude/hooks/epiphan-write-guard.sh` (PreToolUse) prompts for every Epiphan Edge write tool under any
-  Epiphan-named connector, and for any tool on the Edge server itself that isn't on its list of 20 reads, even
+  Epiphan-named connector, and for any tool on the Edge server itself, or on an Epiphan-named connector it
+  doesn't know, that isn't on its list of 20 reads, even
   one named like a read (`get_*`, `kb_*`), or a read name with a stray character in it. It denies those calls
   in bypass mode, denies them all when `EPIPHAN_READ_ONLY` is set to anything but empty, `0`, `false`, `no`
   or `off` (spaces and case ignored), and denies calls it can't read (including a `tool_name` that isn't a
   string). Reboot, firmware, stop, delete, preset, CMS switch, and event edits carry a louder DISRUPTIVE
-  warning, the same set Fleetwatch's tool policy calls disruptive. Other Epiphan services' tools are left to
-  normal permissions. The hook matcher covers any server or connector name containing "epiphan", whatever
+  warning, the same set Fleetwatch's tool policy calls disruptive. The other Epiphan services it knows (the
+  claude.ai Epiphan Ai, Knowledge, Brand, Analytics and epiphan.com WordPress connectors) are left to normal
+  permissions. The hook matcher covers any server or connector name containing "epiphan", whatever
   other characters it holds.
 - `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, PINs, API keys (an Anthropic
   `sk-ant-` key even with no label in front), `Bearer`/`Basic` credentials, `user:password@` in any URL,

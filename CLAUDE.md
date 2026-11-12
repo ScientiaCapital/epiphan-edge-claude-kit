@@ -58,7 +58,8 @@ they ask until the user allows them):** `get_devices_in_my_team`, `get_device_in
 `create/update/delete_stream_endpoint`, `apply_team_preset`, `switch_device_to_cms`, `batch_reboot`,
 `batch_firmware_update`. These are in `permissions.ask` in `.claude/settings.json`, and
 `.claude/hooks/epiphan-write-guard.sh` forces a prompt for every Epiphan Edge write under any connector name, and for
-any other tool on the Edge server itself that isn't on the read list above, including new ones. Bypass mode is
+any other tool on the Edge server itself, or on an Epiphan-named connector the kit doesn't know, that isn't on the
+read list above, including new ones. Bypass mode is
 disabled in this folder; if a write comes back BLOCKED for bypass mode anyway, tell the user to leave it (`Shift+Tab`).
 If it comes back BLOCKED because the call couldn't be read, try once more; if that fails too, show the message and stop.
 If it comes back blocked as **READ-ONLY**, the user started Claude Code in read-only mode (`EPIPHAN_READ_ONLY` is set): say so and don't retry.

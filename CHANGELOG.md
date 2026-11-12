@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+Fixes from a security audit (2026-11).
+
+- `epiphan-write-guard.sh`: a connector with "epiphan" in its name that the kit doesn't know (say
+  "Epiphan Fleet") got no decision for tools off its lists, so a device tool added under a new name there ran
+  on normal permissions. Any tool off the read list on such a server now asks. The other Epiphan services
+  the kit knows (Epiphan Ai, Knowledge, Brand, Analytics, epiphan.com WordPress) are unchanged.
+
 ## v1.1.5 (2026-11-05)
 
 Redaction fix: secret field names written in camelCase or PascalCase are masked.
