@@ -39,18 +39,20 @@
         if (Test-ReleaseTag $tag) { return $tag }
         $tag = $null
         try {
-            # Don't follow the redirect: its address names the tag. Windows PowerShell 5.1 throws on it, PowerShell 7 may not.
-            $location = $null
-            try {
-                $page = Invoke-WebRequest "$Repo/releases/latest" -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
-                $location = [string]$page.Headers['Location']
-            } catch {
-                $response = $_.Exception.Response
-                if ($response) {
-                    $location = if ($response.Headers.Location) { [string]$response.Headers.Location } else { [string]$response.Headers['Location'] }
-                }
+            # Don't follow the redirect: its address names the tag. Invoke-WebRequest -MaximumRedirection 0 throws a
+            # different error in Windows PowerShell 5.1 than in PowerShell 7, so use HttpWebRequest, where a 302 with
+            # AllowAutoRedirect off is an ordinary response in both.
+            $request = [System.Net.HttpWebRequest]::Create("$Repo/releases/latest")
+            $request.AllowAutoRedirect = $false
+            $request.Timeout = 15000
+            $request.UserAgent = 'epiphan-edge-claude-kit-installer'
+            $response = $null
+            try { $response = $request.GetResponse() } catch [System.Net.WebException] { $response = $_.Exception.Response }
+            if ($response) {
+                $location = [string]$response.Headers['Location']
+                $response.Close()
+                if ($location -match '/releases/tag/([^/\s?#]+)') { $tag = $Matches[1] }
             }
-            if ($location -match '/releases/tag/([^/\s?#]+)') { $tag = $Matches[1] }
         } catch { $tag = $null }
         if (Test-ReleaseTag $tag) { return $tag }
         return $null
