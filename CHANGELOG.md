@@ -14,6 +14,13 @@ Fixes from a security audit (2026-11).
   the kit knows (Epiphan Ai, Knowledge, Brand, Analytics, epiphan.com WordPress) are unchanged.
 - `install.sh` and `install.ps1`: if the GitHub lookup of the latest release fails, they now stop with a clear
   message instead of quietly installing the tip of `main`. `EPIPHAN_KIT_REF=main` installs main on purpose.
+- `install.sh` and `install.ps1`: if the lookup of the latest release fails, they now stop with a clear message
+  instead of quietly installing the tip of `main`. `EPIPHAN_KIT_REF=main` installs main on purpose.
+- The release lookup no longer depends only on GitHub's API, which allows 60 requests an hour per address and
+  can be used up by a school network behind one address. If the API refuses, the installers read the redirect
+  from the release page, which is not counted against that limit, and accept only a tag shaped like `v1.2.3`. Windows CI runs
+  the lookup with the API pointed at a dead address, in both PowerShell 5.1 and PowerShell 7.
+
 - `install.sh` shows why `brew install jq` failed instead of hiding it; `install.ps1` says when winget
   couldn't install jq.
 

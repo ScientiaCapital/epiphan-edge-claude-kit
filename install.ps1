@@ -27,9 +27,33 @@
                     [Environment]::GetEnvironmentVariable('Path', 'User') + ';' +
                     (Join-Path $HOME '.local\bin')
     }
-    function Get-LatestRelease {
-        try { (Invoke-RestMethod "https://api.github.com/repos/ScientiaCapital/epiphan-edge-claude-kit/releases/latest" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop).tag_name }
-        catch { $null }
+    # The tag ends up in a download URL and a git ref, so anything that isn't shaped like v1.2.3 is refused.
+    function Test-ReleaseTag($Tag) { [bool]($Tag -and ([string]$Tag) -match '^v?[0-9][A-Za-z0-9._-]*$') }
+    # Two ways to learn the latest release tag. GitHub's API allows 60 requests an hour per address, which a school
+    # network behind one address can use up, so the second way reads the redirect from the release page, which isn't
+    # counted against that limit. -ApiBase exists so a test can point the first way at an address that fails.
+    function Get-LatestRelease($ApiBase = 'https://api.github.com') {
+        $tag = $null
+        try { $tag = (Invoke-RestMethod "$ApiBase/repos/ScientiaCapital/epiphan-edge-claude-kit/releases/latest" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop).tag_name }
+        catch { $tag = $null }
+        if (Test-ReleaseTag $tag) { return $tag }
+        $tag = $null
+        try {
+            # Don't follow the redirect: its address names the tag. Windows PowerShell 5.1 throws on it, PowerShell 7 may not.
+            $location = $null
+            try {
+                $page = Invoke-WebRequest "$Repo/releases/latest" -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
+                $location = [string]$page.Headers['Location']
+            } catch {
+                $response = $_.Exception.Response
+                if ($response) {
+                    $location = if ($response.Headers.Location) { [string]$response.Headers.Location } else { [string]$response.Headers['Location'] }
+                }
+            }
+            if ($location -match '/releases/tag/([^/\s?#]+)') { $tag = $Matches[1] }
+        } catch { $tag = $null }
+        if (Test-ReleaseTag $tag) { return $tag }
+        return $null
     }
     function Set-Ref($Folder) {  # switch an existing clone to $Ref (a tag, branch or commit)
         git -C $Folder fetch --quiet --depth 1 origin $Ref
@@ -96,7 +120,7 @@
     if (-not $Ref -and -not $env:EPIPHAN_KIT_CLONE) {
         $Ref = Get-LatestRelease
         if (-not $Ref) {
-            Problem ("Couldn't look up the latest release of the kit on GitHub, so nothing was installed or changed. " +
+            Problem ("Couldn't look up the latest release of the kit on GitHub (tried its API and its release page), so nothing was installed or changed. " +
                      'Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. ' +
                      'To install the newest unreleased files on main instead, run  $env:EPIPHAN_KIT_REF = ''main''  first (EPIPHAN_KIT_REF=main).')
             return

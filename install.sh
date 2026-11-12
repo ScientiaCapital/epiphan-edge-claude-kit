@@ -19,10 +19,28 @@ interactive() { [ -z "${CI:-}" ] && { : </dev/tty; } 2>/dev/null; }
 # Real git, not the placeholder macOS ships before the developer tools are installed.
 have_git() { git --version >/dev/null 2>&1; }
 
-latest_release() { # prints the latest release tag; bash only, since the no-git path may have no sed or grep
+# The tag ends up in a download URL and a git ref, so anything that isn't shaped like v1.2.3 is refused.
+valid_tag() { [[ ${1:-} =~ ^v?[0-9][A-Za-z0-9._-]*$ ]]; }
+# Two ways to learn the latest release tag, bash only since the no-git path may have no sed or grep. GitHub's API
+# allows 60 requests an hour per address, which a school network behind one address can use up, so the second
+# way reads the redirect from the release page, which isn't counted against that limit.
+latest_release_api() {
   local json re='"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)"'
   json=$(curl -fsSL -m 15 "https://api.github.com/repos/ScientiaCapital/epiphan-edge-claude-kit/releases/latest") || return 1
   [[ $json =~ $re ]] && printf '%s' "${BASH_REMATCH[1]}"
+}
+latest_release_page() { # the page answers with a redirect to .../releases/tag/<tag>; read it without following it
+  local headers re='[Ll]ocation:[[:space:]]*[^[:space:]]*/releases/tag/([^[:space:]]+)'
+  headers=$(curl -fsSI -m 15 "$REPO/releases/latest") || return 1
+  [[ $headers =~ $re ]] && printf '%s' "${BASH_REMATCH[1]}"
+}
+latest_release() { # prints the latest release tag, or fails; never falls back to main
+  local lookup tag
+  for lookup in latest_release_api latest_release_page; do
+    tag=$($lookup 2>/dev/null || true)
+    if valid_tag "$tag"; then printf '%s' "$tag"; return 0; fi
+  done
+  return 1
 }
 checkout_ref() { # checkout_ref <dir>: switch an existing clone to $REF (a tag, branch or commit)
   git -C "$1" fetch --quiet --depth 1 origin "$REF" && git -C "$1" checkout --quiet --detach FETCH_HEAD
@@ -58,7 +76,7 @@ say "Step 2 of 4: The kit"
 # If the release can't be looked up, stop: main is installed only when EPIPHAN_KIT_REF=main is set on purpose.
 if [ -z "$REF" ] && [ -z "${EPIPHAN_KIT_CLONE:-}" ]; then
   REF=$(latest_release || true)
-  [ -n "$REF" ] || fail "Couldn't look up the latest release of the kit on GitHub, so nothing was installed or changed. Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. To install the newest unreleased files on main instead, put EPIPHAN_KIT_REF=main in front of bash: ... | EPIPHAN_KIT_REF=main bash"
+  [ -n "$REF" ] || fail "Couldn't look up the latest release of the kit on GitHub (tried its API and its release page), so nothing was installed or changed. Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. To install the newest unreleased files on main instead, put EPIPHAN_KIT_REF=main in front of bash: ... | EPIPHAN_KIT_REF=main bash"
 fi
 origin=$( (have_git && git -C "$DIR" remote get-url origin) 2>/dev/null || true)
 if [ -d "$DIR/.git" ] && [ -n "$origin" ] && [ "${origin%.git}" = "${CLONE%.git}" ]; then

@@ -28,9 +28,9 @@ jobs:
       - name: Shell scripts are stored with LF line endings
         run: |
           if git ls-files --eol '*.sh' | grep -v 'i/lf'; then echo "CRLF found in a .sh file"; exit 1; fi
-      - name: install.ps1 is plain ASCII (Windows PowerShell 5.1 safe)
+      - name: install.ps1 and its test are plain ASCII (Windows PowerShell 5.1 safe)
         run: |
-          if LC_ALL=C grep -nP '[^\x00-\x7F]' install.ps1; then echo "non-ASCII character in install.ps1"; exit 1; fi
+          if LC_ALL=C grep -nP '[^\x00-\x7F]' install.ps1 tests/installer-lookup.ps1; then echo "non-ASCII character in a PowerShell file"; exit 1; fi
 
   secrets:
     name: Secrets scan
@@ -151,6 +151,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Release lookup works, and still works when GitHub's API is rate limited
+        run: ./tests/installer-lookup.ps1 -Script install.ps1
       - name: First run (Europe)
         env:
           EPIPHAN_KIT_DIR: ${{ runner.temp }}/kit-${{ matrix.shell }}
