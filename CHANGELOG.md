@@ -16,6 +16,14 @@ Fixes from a security audit (2026-11).
   Windows CI runs the lookup with the API pointed at a dead address, in both PowerShell 5.1 and PowerShell 7.
 - `install.sh` shows why `brew install jq` failed instead of hiding it; `install.ps1` says when winget
   couldn't install jq.
+- `epiphan-redact.sh` now masks: a secret name with a prefix in text (`srt_passphrase: ...`, `rtmp_key: ...`);
+  plural and run-together field names (`passwords`, `keys`, `secrets`, `sharedsecret`, `adminpassword`);
+  settings rows that name the secret in one field and hold it in another (`{"param": "srt_passphrase",
+  "val": ...}`, `{"setting": "rtmp.key", "current": ...}`); and bare JWTs, AWS access key IDs, GitHub
+  (`ghp_`, `gho_`, `github_pat_`), OpenAI project (`sk-proj-`) and Slack (`xoxb-` ...) tokens and PEM private
+  key blocks. Words like `keyboard`, `monkey`, `keynote`, `hotkeys` and a channel named "Key Room" are kept.
+  Without `jq`, results with these shapes are withheld.
+- `tests/redaction-cases.json` version 5 adds eight cases (five masked, three kept).
 
 ## v1.1.5 (2026-11-05)
 

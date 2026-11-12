@@ -59,8 +59,11 @@ lowest role your team allows, and start Claude Code with `EPIPHAN_READ_ONLY=1`.
   other characters it holds.
 - `.claude/hooks/epiphan-redact.sh` (PostToolUse) replaces stream keys, passwords, PINs, API keys (an Anthropic
   `sk-ant-` key even with no label in front), `Bearer`/`Basic` credentials, `user:password@` in any URL,
-  RTMP/SRT URL paths, https ingest, live and webhook paths, a publisher's `stream` field next to its URL, and
-  dotted or spaced secret names (`srt.passphrase`, `"Stream key"` in a name/label pair) in tool output with
+  RTMP/SRT URL paths, https ingest, live and webhook paths, a publisher's `stream` field next to its URL,
+  dotted, spaced, prefixed, plural or run-together secret names (`srt.passphrase`, `"Stream key"` in a
+  name/label pair, `srt_passphrase: ...` in text, `passwords`, `sharedsecret`), settings rows that name the
+  secret in one field and hold it in another (`{"param": "srt_passphrase", "val": ...}`), and bare JWTs, AWS
+  access key IDs, GitHub, OpenAI project and Slack tokens and PEM private keys in tool output with
   `[redacted]` before the model sees them, and withholds results it can't check (needs `jq`). A `[redacted]`
   already in the text is read as part of the value around it, so it can't shield what follows.
 - Commands pre-approve only the exact `date` command, never a wildcard, and tell the model not to transcribe a
