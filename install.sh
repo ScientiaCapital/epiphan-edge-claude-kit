@@ -55,9 +55,10 @@ fi
 
 say "Step 2 of 4: The kit"
 # The published kit is installed at its latest release, so a re-run never picks up unreviewed changes on main.
+# If the release can't be looked up, stop: main is installed only when EPIPHAN_KIT_REF=main is set on purpose.
 if [ -z "$REF" ] && [ -z "${EPIPHAN_KIT_CLONE:-}" ]; then
   REF=$(latest_release || true)
-  [ -n "$REF" ] || echo "(Couldn't look up the latest release. Using the newest files on main.)"
+  [ -n "$REF" ] || fail "Couldn't look up the latest release of the kit on GitHub, so nothing was installed or changed. Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. To install the newest unreleased files on main instead, put EPIPHAN_KIT_REF=main in front of bash: ... | EPIPHAN_KIT_REF=main bash"
 fi
 origin=$( (have_git && git -C "$DIR" remote get-url origin) 2>/dev/null || true)
 if [ -d "$DIR/.git" ] && [ -n "$origin" ] && [ "${origin%.git}" = "${CLONE%.git}" ]; then
@@ -119,7 +120,10 @@ fi
 # jq lets the kit hide stream keys from Claude (.claude/hooks/epiphan-redact.sh). macOS 15+ has it built in.
 if ! command -v jq >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
   echo "Installing jq with Homebrew (it hides stream keys, the passwords that let a device stream, from Claude). This can take a minute..."
-  HOMEBREW_NO_AUTO_UPDATE=1 brew install jq >/dev/null 2>&1 || true
+  if ! brew_log=$(HOMEBREW_NO_AUTO_UPDATE=1 brew install jq 2>&1); then
+    echo "Homebrew couldn't install jq. Its last words were:"
+    printf '%s\n' "$brew_log" | tail -n 5 | sed 's/^/    /'
+  fi
 fi
 if ! command -v jq >/dev/null 2>&1; then
   echo "Note: jq isn't installed. Until it is, results that may contain stream keys are withheld from Claude."

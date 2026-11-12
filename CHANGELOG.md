@@ -4,10 +4,19 @@
 
 Fixes from a security audit (2026-11).
 
+## Unreleased
+
+Fixes from a security audit (2026-11).
+
 - `epiphan-write-guard.sh`: a connector with "epiphan" in its name that the kit doesn't know (say
   "Epiphan Fleet") got no decision for tools off its lists, so a device tool added under a new name there ran
   on normal permissions. Any tool off the read list on such a server now asks. The other Epiphan services
   the kit knows (Epiphan Ai, Knowledge, Brand, Analytics, epiphan.com WordPress) are unchanged.
+- `install.sh` and `install.ps1`: if the GitHub lookup of the latest release fails, they now stop with a clear
+  message instead of quietly installing the tip of `main`. `EPIPHAN_KIT_REF=main` installs main on purpose.
+- `install.sh` shows why `brew install jq` failed instead of hiding it; `install.ps1` says when winget
+  couldn't install jq.
+
 
 ## v1.1.5 (2026-11-05)
 

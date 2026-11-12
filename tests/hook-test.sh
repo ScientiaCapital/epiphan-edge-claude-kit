@@ -359,7 +359,20 @@ else ok "no command pre-approves a Bash wildcard"; fi
 for f in install.sh install.ps1; do
   if grep -q 'EPIPHAN_KIT_REF' "$f" && grep -q 'releases/latest' "$f" && ! grep -q 'refs/heads/main' "$f"; then ok "$f installs a release, not main"
   else bad "$f doesn't pin the kit to a release"; fi
+  # If the release can't be looked up, they stop; main only when EPIPHAN_KIT_REF=main is set on purpose.
+  if grep -q 'EPIPHAN_KIT_REF=main' "$f" && ! grep -qi 'newest files on main' "$f"; then ok "$f fails closed without a release"
+  else bad "$f falls back to main when the release lookup fails"; fi
 done
+# install.sh, run with a curl that always fails: it must stop before downloading anything, and say how to pick main.
+fake=$(mktemp -d)
+printf '#!/bin/sh\nexit 0\n' > "$fake/claude"; printf '#!/bin/sh\nexit 22\n' > "$fake/curl"; chmod +x "$fake/claude" "$fake/curl"
+out=$(PATH="$fake:$PATH" CI=1 EPIPHAN_KIT_DIR="$fake/kit" EPIPHAN_KIT_REF='' EPIPHAN_KIT_CLONE='' EPIPHAN_REGION='' bash install.sh 2>&1); code=$?
+if [ "$code" -ne 0 ] && [ ! -e "$fake/kit" ] && printf '%s' "$out" | grep -q 'EPIPHAN_KIT_REF=main'; then ok "install.sh stops when the release lookup fails"
+else bad "install.sh without a release lookup: exit=$code, kit dir $( [ -e "$fake/kit" ] && echo created || echo absent ): $out"; fi
+rm -rf "$fake"
+# A failed jq install is reported, not swallowed.
+if grep -q 'brew install jq' install.sh && ! grep -E 'brew install jq.*\|\|[[:space:]]*true' install.sh >/dev/null; then ok "install.sh reports a failed brew install jq"
+else bad "install.sh hides a failed brew install jq"; fi
 # Commands that look at a preview frame must not read a stream key off the screen.
 for c in view-room check-room; do
   if grep -q "don't transcribe it" ".claude/commands/$c.md"; then ok "/$c won't transcribe on-screen keys"

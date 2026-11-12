@@ -66,6 +66,7 @@
     if (-not (Has jq) -and (Has winget)) {
         Write-Host 'Installing jq with winget (it hides stream keys, the passwords that let a device stream, from Claude)...'
         winget install --id jqlang.jq -e --source winget --accept-package-agreements --accept-source-agreements *> $null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "winget couldn't install jq (exit code $LASTEXITCODE). Run  winget install jqlang.jq  to see why." }
         Update-Path
     }
     if (-not (Has jq)) {
@@ -91,9 +92,15 @@
 
     Say 'Step 3 of 5: The kit'
     # The published kit is installed at its latest release, so a re-run never picks up unreviewed changes on main.
+    # If the release can't be looked up, stop: main is installed only when EPIPHAN_KIT_REF=main is set on purpose.
     if (-not $Ref -and -not $env:EPIPHAN_KIT_CLONE) {
         $Ref = Get-LatestRelease
-        if (-not $Ref) { Write-Host "(Couldn't look up the latest release. Using the newest files on main.)" }
+        if (-not $Ref) {
+            Problem ("Couldn't look up the latest release of the kit on GitHub, so nothing was installed or changed. " +
+                     'Check your internet connection, wait a few minutes (GitHub limits how often it can be asked), then paste the install line again. ' +
+                     'To install the newest unreleased files on main instead, run  $env:EPIPHAN_KIT_REF = ''main''  first (EPIPHAN_KIT_REF=main).')
+            return
+        }
     }
     $origin = ''
     if ((Test-Path (Join-Path $Dir '.git')) -and (Has git)) { $origin = (git -C $Dir remote get-url origin 2>$null) }
