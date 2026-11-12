@@ -89,6 +89,18 @@ expect pass "other Epiphan service, unknown tool"  '{"tool_name":"mcp__claude_ai
 expect ask  "known write on an odd connector name" '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__batch_reboot"}'
 expect ask  "unknown write on a device connector"  '{"tool_name":"mcp__claude_ai_EpiphanCloud__new_thing"}'
 expect ask  "unknown write on epiphan-eu"          '{"tool_name":"mcp__epiphan-eu__new_thing"}'
+# An Epiphan-named connector the kit doesn't know may carry device tools under new names, so anything off the read
+# list asks there too. The other Epiphan services the kit knows (CRM, docs, brand, analytics, website) stay as they were.
+expect ask  "unknown tool on an unlisted Epiphan connector"   '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__new_thing"}'
+expect ask  "get_ name on an unlisted Epiphan connector"      '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__get_and_reset_device"}'
+expect ask  "unknown tool on an Epiphan plugin-less server"   '{"tool_name":"mcp__my_epiphan_bridge__set_mode"}'
+expect pass "known read on an unlisted Epiphan connector"     '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__get_device_info"}'
+expect deny "unlisted Epiphan connector in bypass mode"       '{"permission_mode":"bypassPermissions","tool_name":"mcp__claude_ai_Epiphan_Fleet__new_thing"}'
+EPIPHAN_READ_ONLY=1 expect deny "read-only: unlisted Epiphan connector" '{"tool_name":"mcp__claude_ai_Epiphan_Fleet__new_thing"}'
+for t in claude_ai_Epiphan_Ai__execute_sql claude_ai_Epiphan_Ai__hubspot_update_contact claude_ai_Epiphan_Knowledge__fetch \
+         claude_ai_Epiphan_Brand__get_style_tokens claude_ai_Epiphan_Analytics__run_gaql claude_ai_Epiphan_com_Wordpress__wp_create_draft; do
+  expect pass "other Epiphan service: $t" "{\"tool_name\":\"mcp__${t}\"}"
+done
 
 # Bypass mode skips "ask", so writes must be denied there. Reads still pass.
 for m in default acceptEdits auto dontAsk plan; do
