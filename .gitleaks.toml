@@ -1,0 +1,9 @@
+# gitleaks: every default rule, plus one exemption.
+title = "epiphan-edge-claude-kit"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic secrets the redaction tests must catch (shared byte-for-byte with Fleetwatch, roomsync, pearl-episodes and ec20-voice-steer)"
+paths = ['''^tests/redaction-cases\.json$''']
